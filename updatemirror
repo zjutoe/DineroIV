@@ -1,0 +1,16 @@
+#
+echo "To replace version 6 with 7"
+echo "PASTE IN THE FOLLOWING INTO THIS WINDOW"
+echo ""
+echo pushd /p/hill/ftp/DineroIV
+echo mv d4-6.tar.gz Old
+echo ftp ftp.nj.nec.com
+echo login anonymous
+echo passwd markhill@cs.wisc.edu
+echo cd /pub/edler/d4
+echo set binary
+echo get CHANGES
+echo get README
+echo get d4-7.tar.gz
+echo quit
+
