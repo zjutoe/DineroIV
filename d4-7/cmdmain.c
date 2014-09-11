@@ -1967,6 +1967,8 @@ main (int argc, char **argv)
 
 	summarize_caches (ci, cd);
 
+	int miss_cnt = 0;
+
 	printf ("\n---Simulation begins.\n");
 	tintcount = stat_interval;
 	flcount = flushcount;
@@ -1979,9 +1981,9 @@ main (int argc, char **argv)
 			break;
 		}
 		switch (r.accesstype) {
-		case D4XINSTRN:	  d4ref (ci, r);  break;
-		case D4XINVAL:	  d4ref (ci, r);  /* fall through */
-		default:	  d4ref (cd, r);  break;
+		case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
+		case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
+		default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
 		}
 		tmaxcount += 1;
 		if (tintcount > 0 && (tintcount -= 1) <= 0) {
@@ -1993,11 +1995,12 @@ main (int argc, char **argv)
 			r.accesstype = D4XCOPYB;
 			r.address = 0;
 			r.size = 0;
-			d4ref (cd, r);
+			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
 			r.accesstype = D4XINVAL;
-			d4ref (ci, r);
-			if (ci != cd)
-				d4ref (cd, r);
+			miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
+			if (ci != cd) {
+				miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+			}
 			flcount = flushcount;
 		}
 	}
@@ -2006,7 +2009,7 @@ done:
 	r.accesstype = D4XCOPYB;
 	r.address = 0;
 	r.size = 0;
-	d4ref (cd, r);
+	miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
 	printf ("---Simulation complete.\n");
 	dostats();
 	printf ("---Execution complete.\n");

@@ -607,9 +607,10 @@ d4_splitm (d4cache *c, d4memref mr, d4addr ba)
  * The user calls this function for the cache closest to
  * the processor; other caches are handled automatically.
  */
-void
+int
 d4ref (d4cache *c, d4memref mr)
 {
+    int miss_cnt = 0;
     /* special cases first */
     if ((D4VAL (c, flags) & D4F_MEM) != 0) /* Special case for simulated memory */
 	c->fetch[(int)mr.accesstype]++;
@@ -812,6 +813,7 @@ d4ref (d4cache *c, d4memref mr)
 	 */
 	c->fetch[(int)m.accesstype]++;
 	if (miss) {
+		miss_cnt++;
 		c->miss[(int)m.accesstype]++;
 		if (blockmiss)
 			c->blockmiss[(int)m.accesstype]++;
@@ -821,8 +823,10 @@ d4ref (d4cache *c, d4memref mr)
 	 * Now make recursive calls for pending references
 	 */
 	if (c->pending)
-		d4_dopending (c, c->pending);
+		miss_cnt += d4_dopending (c, c->pending);
     }
+
+    return miss_cnt;
 }
 
 #endif /* !D4CUSTOM || D4_REF_ONCE>1 */
