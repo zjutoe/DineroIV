@@ -1924,16 +1924,14 @@ clog2 (unsigned int x)
 	return i;
 }
 
-
-d4memref r;
 d4cache *ci, *cd;
 double tmaxcount = 0, tintcount;
 double flcount;
 
-int do_cache_ref(void)
+int do_cache_ref(d4memref r)
 {
 	int miss_cnt = 0;
-	r = next_trace_item();
+	// printf("r: %u %x %d\n", r.accesstype, r.address, r.size);
 	if (r.accesstype == D4TRACE_END)
 		goto done;
 
