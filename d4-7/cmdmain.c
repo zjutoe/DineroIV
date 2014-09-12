@@ -1923,7 +1923,10 @@ clog2 (unsigned int x)
 	return i;
 }
 
-int do_cache_ref(d4memref r, d4cache *ci, d4cache *cd, double *tmaxcount)
+int do_cache_ref(d4memref r, 
+		 d4cache *ci, d4cache *cd, 
+		 double *tmaxcount, double *flcount, 
+		 double tintcount)
 {
 	int miss_cnt = 0;
 		r = next_trace_item();
@@ -1944,7 +1947,7 @@ int do_cache_ref(d4memref r, d4cache *ci, d4cache *cd, double *tmaxcount)
 			dostats();
 			tintcount = stat_interval;
 		}
-		if (flcount > 0 && (flcount -= 1) <= 0) {
+		if (*flcount > 0 && (*flcount -= 1) <= 0) {
 			/* flush cache = copy back and invalidate */
 			r.accesstype = D4XCOPYB;
 			r.address = 0;
@@ -1955,7 +1958,7 @@ int do_cache_ref(d4memref r, d4cache *ci, d4cache *cd, double *tmaxcount)
 			if (ci != cd) {
 				miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
 			}
-			flcount = flushcount;
+			*flcount = flushcount;
 		}
 		return miss_cnt;
  done:
@@ -2012,7 +2015,7 @@ main (int argc, char **argv)
 	tintcount = stat_interval;
 	flcount = flushcount;
 	while (1) {
-		miss_cnt = do_cache_ref(r, ci, cd), &tmaxcount;
+		miss_cnt = do_cache_ref(r, ci, cd, &tmaxcount, &flcount, tintcount), &tmaxcount;
 		if (miss_cnt == -1) goto done;
 	}
 done:
