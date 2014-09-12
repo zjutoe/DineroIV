@@ -1940,9 +1940,9 @@ int do_cache_ref(d4memref r)
 		return -1;
 	}
 	switch (r.accesstype) {
-	case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
-	case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
-	default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
+	case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  break;
+	case D4XINVAL:	  miss_cnt = d4ref (ci, r);  /* fall through */ 
+	default:	  miss_cnt = d4ref (cd, r);  break;
 	}
 	tmaxcount += 1;
 	if (tintcount > 0 && (tintcount -= 1) <= 0) {
@@ -1954,11 +1954,11 @@ int do_cache_ref(d4memref r)
 		r.accesstype = D4XCOPYB;
 		r.address = 0;
 		r.size = 0;
-		miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+		miss_cnt = d4ref (cd, r); 
 		r.accesstype = D4XINVAL;
-		miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
+		miss_cnt = d4ref (ci, r); 
 		if (ci != cd) {
-			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+			miss_cnt = d4ref (cd, r); 
 		}
 		flcount = flushcount;
 	}
@@ -2053,7 +2053,7 @@ done:
 	r.accesstype = D4XCOPYB;
 	r.address = 0;
 	r.size = 0;
-	miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+	miss_cnt = d4ref (cd, r); 
 	printf ("---Simulation complete.\n");
 	dostats();
 	printf ("---Execution complete.\n");
