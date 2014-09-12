@@ -1933,40 +1933,40 @@ double flcount;
 int do_cache_ref()
 {
 	int miss_cnt = 0;
-		r = next_trace_item();
-		if (r.accesstype == D4TRACE_END)
-			goto done;
+	r = next_trace_item();
+	if (r.accesstype == D4TRACE_END)
+		goto done;
 
-		if (maxcount != 0 && tmaxcount >= maxcount) {
-			printf ("---Maximum address count exceeded.\n");
-			return -1;
-		}
-		switch (r.accesstype) {
-		case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
-		case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
-		default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
-		}
-		tmaxcount += 1;
-		if (tintcount > 0 && (tintcount -= 1) <= 0) {
-			dostats();
-			tintcount = stat_interval;
-		}
-		if (flcount > 0 && (flcount -= 1) <= 0) {
-			/* flush cache = copy back and invalidate */
-			r.accesstype = D4XCOPYB;
-			r.address = 0;
-			r.size = 0;
-			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
-			r.accesstype = D4XINVAL;
-			miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
-			if (ci != cd) {
-				miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
-			}
-			flcount = flushcount;
-		}
-		return miss_cnt;
- done:
+	if (maxcount != 0 && tmaxcount >= maxcount) {
+		printf ("---Maximum address count exceeded.\n");
 		return -1;
+	}
+	switch (r.accesstype) {
+	case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
+	case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
+	default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
+	}
+	tmaxcount += 1;
+	if (tintcount > 0 && (tintcount -= 1) <= 0) {
+		dostats();
+		tintcount = stat_interval;
+	}
+	if (flcount > 0 && (flcount -= 1) <= 0) {
+		/* flush cache = copy back and invalidate */
+		r.accesstype = D4XCOPYB;
+		r.address = 0;
+		r.size = 0;
+		miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+		r.accesstype = D4XINVAL;
+		miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
+		if (ci != cd) {
+			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+		}
+		flcount = flushcount;
+	}
+	return miss_cnt;
+ done:
+	return -1;
 }
 
 int do_cache_init()
