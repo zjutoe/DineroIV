@@ -1930,7 +1930,7 @@ d4cache *ci, *cd;
 double tmaxcount = 0, tintcount;
 double flcount;
 
-int do_cache_ref()
+int do_cache_ref(void)
 {
 	int miss_cnt = 0;
 	r = next_trace_item();
@@ -1969,7 +1969,7 @@ int do_cache_ref()
 	return -1;
 }
 
-int do_cache_init()
+int do_cache_init(void)
 {
 	char* argv[30] = {"dineroIV",
 			"-l1-isize", "8k", 
@@ -1997,6 +1997,7 @@ int do_cache_init()
 	summarize_caches (ci, cd);
 }
 
+#if 0
 /*
  * Everything starts here
  */
@@ -2061,3 +2062,4 @@ done:
 	return 0;
 }
 
+#endif	/* 0 */
