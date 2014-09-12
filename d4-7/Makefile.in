@@ -55,6 +55,8 @@ SHELL = /bin/sh
 LIB_OBJ_LIST = ref.o misc.o
 CMD_OBJ_LIST = cmdmain.o cmdargs.o tracein.o \
 	xdinfmt.o dinfmt.o binaryfmt.o pixie32fmt.o pixie64fmt.o
+D4LUA_OBJ_LIST = d4lua.o cmdargs.o tracein.o \
+	xdinfmt.o dinfmt.o binaryfmt.o pixie32fmt.o pixie64fmt.o
 
 D4_SRC = $(srcdir)
 D4_LIB = $(D4_SRC)/libd4.a
@@ -70,7 +72,7 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
 
-all: libd4.a dineroIV
+all: libd4.a dineroIV libd4lua.so 
 
 clean:
 	rm -f $(LIB_OBJ_LIST) $(CMD_OBJ_LIST)
@@ -89,6 +91,9 @@ libd4.a: $(LIB_OBJ_LIST)
 dineroIV: $(CMD_OBJ_LIST) libd4.a d4.h
 	$(CC) $(CFLAGS) -o dineroIV $(CMD_OBJ_LIST) libd4.a $(LIBS)
 
+libd4lua.so: $(D4LUA_OBJ_LIST) libd4.a d4.h
+	$(CC) -shared $(CFLAGS) -o libd4lua.so $(D4LUA_OBJ_LIST) libd4.a $(LIBS)
+
 # don't include $(D4_LIB) on next line; a custom make should not rebuild it
 $(CUSTOM_NAME): $(CUSTOM_C) $(CMD_SRC_LIST) $(D4_SRC)/d4.h $(D4_SRC)/config.h
 	$(CC) $(CFLAGS) -DD4CUSTOM -o $(CUSTOM_NAME) \
@@ -104,3 +109,6 @@ dinfmt.o: dinfmt.c d4.h cmdd4.h tracein.h config.h
 binaryfmt.o: binaryfmt.c d4.h cmdd4.h tracein.h config.h
 pixie32fmt.o: pixie32fmt.c d4.h cmdd4.h tracein.h config.h
 pixie64fmt.o: pixie64fmt.c d4.h cmdd4.h tracein.h config.h
+d4lua.o: d4lua.c d4.h cmdd4.h cmdargs.h tracein.h config.h
+#	$(CC) -fPIC -c d4lua.c
+
