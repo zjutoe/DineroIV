@@ -151,6 +151,7 @@ doargs (int argc, char **argv)
 	for (adesc = args;  adesc->optstring != NULL;  adesc++)
 		if (optstringmax < (int)strlen(adesc->optstring) + adesc->pad)
 			optstringmax = strlen(adesc->optstring) + adesc->pad;
+
 	while (argc > 1) {
 		const char *opt = v[0];
 		const char *arg = (argc>1) ? v[1] : NULL;
@@ -1923,17 +1924,20 @@ clog2 (unsigned int x)
 	return i;
 }
 
-int do_cache_ref(d4memref r, 
-		 d4cache *ci, d4cache *cd, 
-		 double *tmaxcount, double *flcount, 
-		 double tintcount)
+
+d4memref r;
+d4cache *ci, *cd;
+double tmaxcount = 0, tintcount;
+double flcount;
+
+int do_cache_ref()
 {
 	int miss_cnt = 0;
 		r = next_trace_item();
 		if (r.accesstype == D4TRACE_END)
 			goto done;
 
-		if (maxcount != 0 && *tmaxcount >= maxcount) {
+		if (maxcount != 0 && tmaxcount >= maxcount) {
 			printf ("---Maximum address count exceeded.\n");
 			return -1;
 		}
@@ -1942,12 +1946,12 @@ int do_cache_ref(d4memref r,
 		case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
 		default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
 		}
-		*tmaxcount += 1;
+		tmaxcount += 1;
 		if (tintcount > 0 && (tintcount -= 1) <= 0) {
 			dostats();
 			tintcount = stat_interval;
 		}
-		if (*flcount > 0 && (*flcount -= 1) <= 0) {
+		if (flcount > 0 && (flcount -= 1) <= 0) {
 			/* flush cache = copy back and invalidate */
 			r.accesstype = D4XCOPYB;
 			r.address = 0;
@@ -1958,13 +1962,40 @@ int do_cache_ref(d4memref r,
 			if (ci != cd) {
 				miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
 			}
-			*flcount = flushcount;
+			flcount = flushcount;
 		}
 		return miss_cnt;
  done:
 		return -1;
 }
 
+int do_cache_init()
+{
+	char* argv[30] = {"dineroIV",
+			"-l1-isize", "8k", 
+			"-l1-dsize", "8k", 
+			"-l1-ibsize", "16", 
+			"-l1-dbsize", "16",
+			"-l1-iassoc", "2",
+			"-l1-dassoc", "2",
+			"-l1-irepl", "l",
+			"-l1-drepl", "l",
+			"-l1-ifetch", "d",
+			"-l1-dfetch", "d",
+			"-l1-dwalloc", "a",
+			"-l1-dwback", "a",
+			"-flushcount", "10k",
+			"-stat-idcombine",
+			"-informat", "d"};
+	int argc = 30;
+
+	doargs (argc, argv);
+	initialize_caches (&ci, &cd);
+	if (cd == NULL)
+		cd = ci;	/* for unified L1 cache */
+
+	summarize_caches (ci, cd);
+}
 
 /*
  * Everything starts here
@@ -2030,7 +2061,3 @@ done:
 	return 0;
 }
 
-void test(void)
-{
-	printf("hi Toe!\n");
-}
