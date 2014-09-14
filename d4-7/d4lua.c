@@ -1758,7 +1758,7 @@ initialize_caches (d4cache **icachep, d4cache **dcachep)
 	d4cache	*c = NULL,	/* avoid `may be used uninitialized' warning in gcc */
 		*ci,
 		*cd;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	mem = cd = ci = d4new(NULL);
 	if (ci == NULL)
 		die ("cannot create simulated memory\n");
@@ -1780,9 +1780,11 @@ initialize_caches (d4cache **icachep, d4cache **dcachep)
 			}
 		}
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	i = d4setup();
 	if (i != 0)
 		die ("cannot complete cache initializations; d4setup = %d\n", i);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	*icachep = ci;
 	*dcachep = cd;
 }
@@ -1924,13 +1926,21 @@ clog2 (unsigned int x)
 	return i;
 }
 
-d4cache *ci, *cd;
+#define MAXCORE 64
+d4cache* a_ci[MAXCORE];
+d4cache* a_cd[MAXCORE];
+//d4cache *ci, *cd;
 double tmaxcount = 0, tintcount;
 double flcount;
+extern void set_coreid(int id);		//global var defined in misc.c
 
-int do_cache_ref(d4memref r)
+int do_cache_ref(int core_id, d4memref r)
 {
+	set_coreid(core_id);
 	int miss_cnt = 0;
+	d4cache* ci = a_ci[core_id];
+	d4cache* cd = a_cd[core_id];
+
 	// printf("r: %u %x %d\n", r.accesstype, r.address, r.size);
 	if (r.accesstype == D4TRACE_END)
 		goto done;
@@ -1967,8 +1977,13 @@ int do_cache_ref(d4memref r)
 	return -1;
 }
 
-int do_cache_init(void)
+int do_cache_init(int core_num)
 {
+	if (core_num >= MAXCORE) {
+		fprintf(stderr, "[ERROR] core number exceed limit %d\n", MAXCORE);
+		return -1;
+	}
+
 	char* argv[30] = {"dineroIV",
 			"-l1-isize", "8k", 
 			"-l1-dsize", "8k", 
@@ -1988,11 +2003,17 @@ int do_cache_init(void)
 	int argc = 30;
 
 	doargs (argc, argv);
-	initialize_caches (&ci, &cd);
-	if (cd == NULL)
-		cd = ci;	/* for unified L1 cache */
 
-	summarize_caches (ci, cd);
+	int i;
+	for (i=0; i<core_num; i++) {
+		printf("init cache for core %d\n", i);
+		set_coreid(i);
+		initialize_caches (&a_ci[i], &a_cd[i]);
+		if (a_cd[i] == NULL)
+			a_cd[i] = a_ci[i];	/* for unified L1 cache */
+
+		summarize_caches (a_ci[i], a_cd[i]);
+	}
 }
 
 #if 0

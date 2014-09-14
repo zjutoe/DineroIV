@@ -54,12 +54,20 @@
 /*
  * Global variable definitions
  */
+typedef struct _GVar {
 struct d4_stackhash_struct d4stackhash;
 d4stacknode d4freelist;
 int d4nnodes;
 d4pendstack *d4pendfree;
 d4cache *d4_allcaches;
+} GVar;
 
+GVar G[4];
+int coreid; //FIXME should have a better way to pass coreid other than global var
+void set_coreid(int id)
+{
+	coreid = id;
+}
 
 /*
  * Private prototypes for this file
@@ -76,6 +84,7 @@ extern void d4_invinfcache (d4cache *, const d4memref *);
 d4cache *
 d4new (d4cache *larger)
 {
+	printf("%s %d coreid=%d\n", __FUNCTION__, __LINE__, coreid);	
 	static int nextcacheid = 1;
 	d4cache *c = calloc (1, sizeof(d4cache));
 
@@ -88,8 +97,8 @@ d4new (d4cache *larger)
 		c->flags = D4F_MEM;
 		c->assoc = 1;	/* not used, but helps avoid compiler warnings */
 	}
-	c->link = d4_allcaches;
-	d4_allcaches = c;	/* d4customize depends on this LIFO order */
+	c->link = G[coreid].d4_allcaches;
+	G[coreid].d4_allcaches = c;	/* d4customize depends on this LIFO order */
 	return c;
 }
 
@@ -104,13 +113,16 @@ d4new (d4cache *larger)
 int
 d4setup()
 {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
+	struct d4_stackhash_struct *d4stackhash = &(G[coreid].d4stackhash);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	int i, nnodes;
 	int r = 0;
 	d4cache *c, *cc;
 	d4stacknode *nodes = NULL, *ptr;
 
-	for (c = d4_allcaches;  c != NULL;  c = c->link) {
-
+	for (c = G[coreid].d4_allcaches;  c != NULL;  c = c->link) {
+		printf("%s %d coreid=%d\n", __FUNCTION__, __LINE__, coreid);
 		/* Check some stuff the user shouldn't muck with */
 		if (c->stack != NULL || c->pending != NULL ||
 		    c->cacheid < 1 ||
@@ -118,8 +130,8 @@ d4setup()
 		    (c->flags != D4F_MEM && c->downstream == NULL) ||
 		    c->numsets != 0 ||
 		    c->ranges != NULL || c->nranges != 0 || c->maxranges != 0)
-			goto fail1;
-
+			{printf("%s %d\n", __FUNCTION__, __LINE__); goto fail1;}
+		printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * If customization has been done,
 		 * check that the same values have been set in the d4cache structure.
@@ -127,6 +139,7 @@ d4setup()
 		 * must match the code in d4customize.
 		 */
 		if (d4custom) {
+			printf("%s %d\n", __FUNCTION__, __LINE__);
 			int problem = 0;
 			if (c->cacheid > d4_ncustom)
 				problem |= 0x1;
@@ -170,6 +183,7 @@ d4setup()
 				exit (9);
 			}
 		}
+		printf("%s %d\n", __FUNCTION__, __LINE__);
 
 		if ((c->flags & D4F_MEM) != 0)
 			c->numsets = 1;	/* not used, but helps avoid compiler warnings */
@@ -230,9 +244,9 @@ d4setup()
 			}
 			assert (ptr - nodes == nnodes);
 #if D4_HASHSIZE == 0
-			d4stackhash.size += c->numsets * c->assoc;
+			d4stackhash->size += c->numsets * c->assoc;
 #endif
-			d4nnodes += nnodes;
+			G[coreid].d4nnodes += nnodes;
 		}
 
 		/* make a printable name if the user didn't pick one */
@@ -244,11 +258,12 @@ d4setup()
 				 (c->flags&D4F_MEM)!=0 ? "memory" : "cache", c->cacheid);
 		}
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 #if D4_HASHSIZE > 0
-	d4stackhash.size = D4_HASHSIZE;
+	d4stackhash->size = D4_HASHSIZE;
 #endif
-	d4stackhash.table = calloc (d4stackhash.size, sizeof(d4stacknode*));
-	if (d4stackhash.table == NULL)
+	d4stackhash->table = calloc (d4stackhash->size, sizeof(d4stacknode*));
+	if (d4stackhash->table == NULL)
 		goto fail13;
 	return 0;
 
@@ -270,14 +285,22 @@ fail3:	r++;
 fail2:	r++;
 fail1:	r++;
 
-	for (cc = d4_allcaches;  cc != c;  cc = cc->link) {
+	for (cc = G[coreid].d4_allcaches;  cc != c;  cc = cc->link) {
+		printf("%s %d\n", __FUNCTION__, __LINE__);	
 		/* don't bother trying to deallocate c->name */
-		free (c->stack[0].top);
-		free (c->stack);
-		c->stack = NULL;
+		if (c->stack[0].top != NULL) {
+			free (c->stack[0].top);
+			c->stack[0].top = NULL;
+		}
+		printf("%s %d\n", __FUNCTION__, __LINE__);
+		if (c->stack != NULL) { 
+			free (c->stack);
+			c->stack = NULL;
+		}
 		c->numsets = 0;
 	}
-	d4nnodes = 0;
+	printf("%s %d\n", __FUNCTION__, __LINE__);
+	G[coreid].d4nnodes = 0;
 	return r;
 }
 
@@ -469,11 +492,13 @@ d4checkstack (d4cache *c, int stacknum, char *msg)
 d4stacknode *
 d4_find (d4cache *c, int stacknum, d4addr blockaddr)
 {
+	struct d4_stackhash_struct *d4stackhash = &(G[coreid].d4stackhash);
+
 	d4stacknode *ptr;
 
 	if (c->stack[stacknum].n > D4HASH_THRESH) {
 		int buck = D4HASH (blockaddr, stacknum, c->cacheid);
-		for (ptr = d4stackhash.table[buck];
+		for (ptr = d4stackhash->table[buck];
 		     ptr!=NULL && (ptr->blockaddr!=blockaddr || ptr->cachep!=c || ptr->onstack != stacknum);
 		     ptr = ptr->bucket)
 			assert (ptr->valid != 0);
@@ -569,11 +594,12 @@ d4movetobot (d4cache *c, int stacknum, d4stacknode *ptr)
 void
 d4hash (d4cache *c, int stacknum, d4stacknode *s)
 {
+	struct d4_stackhash_struct *d4stackhash = &(G[coreid].d4stackhash);
 	int buck = D4HASH (s->blockaddr, stacknum, s->cachep->cacheid);
 
 	assert (c->stack[stacknum].n > D4HASH_THRESH);
-	s->bucket = d4stackhash.table[buck];
-	d4stackhash.table[buck] = s;
+	s->bucket = d4stackhash->table[buck];
+	d4stackhash->table[buck] = s;
 }
 
 
@@ -581,12 +607,13 @@ d4hash (d4cache *c, int stacknum, d4stacknode *s)
 void
 d4_unhash (d4cache *c, int stacknum, d4stacknode *s)
 {
+	struct d4_stackhash_struct *d4stackhash = &(G[coreid].d4stackhash);
 	int buck = D4HASH (s->blockaddr, stacknum, c->cacheid);
-	d4stacknode *p = d4stackhash.table[buck];
+	d4stacknode *p = d4stackhash->table[buck];
 
 	assert (c->stack[stacknum].n > D4HASH_THRESH);
 	if (p == s)
-		d4stackhash.table[buck] = s->bucket;
+		d4stackhash->table[buck] = s->bucket;
 	else {
 		while (p->bucket != s) {
 			assert (p->bucket != NULL);
@@ -603,9 +630,9 @@ d4get_mref()
 {
 	d4pendstack *m;
 
-	m = d4pendfree;
+	m = G[coreid].d4pendfree;
 	if (m != NULL) {
-		d4pendfree = m->next;
+		G[coreid].d4pendfree = m->next;
 		return m;
 	}
 	m = malloc (sizeof(*m));	/* no need to get too fancy here */
@@ -621,8 +648,8 @@ d4get_mref()
 void
 d4put_mref (d4pendstack *m)
 {
-	m->next = d4pendfree;
-	d4pendfree = m;
+	m->next = G[coreid].d4pendfree;
+	G[coreid].d4pendfree = m;
 }
 
 
@@ -893,11 +920,11 @@ d4customize (FILE *f)
 	 * which can be used to find the proper customized d4ref function
 	 * when the customized program is started up.
 	 */
-	if (d4_allcaches == NULL) {
+	if (G[coreid].d4_allcaches == NULL) {
 		fprintf (stderr, "Dinero IV: d4customize called before d4new\n");
 		exit (9);
 	}
-	n = d4_allcaches->cacheid;
+	n = G[coreid].d4_allcaches->cacheid;
 	for (i = 1;  i <= n;  i++)
 		fprintf (f, "extern void d4_%dref (d4cache *, d4memref);\n", i);
 	fprintf (f, "void (*d4_custom[])(d4cache *, d4memref) = {\n\t");
@@ -913,7 +940,7 @@ d4customize (FILE *f)
 	 * If you add new policy functions to ref.c, you need to
 	 * add code here too!
 	 */
-	for (c = d4_allcaches;  c != NULL;  c = c->link) {
+	for (c = G[coreid].d4_allcaches;  c != NULL;  c = c->link) {
 		int cid = c->cacheid;
 		fprintf (f, "\n");
 
@@ -1135,7 +1162,7 @@ d4customize (FILE *f)
 	/*
 	 * Now tie all the customized values up for checking in d4setup
 	 */
-	n = d4_allcaches->cacheid;
+	n = G[coreid].d4_allcaches->cacheid;
 	fprintf (f, "\nlong *d4_cust_vals[%d+1] = {\n\tNULL,\n", n);
 	for (i = 1;  i <= n;  i++)
 		fprintf (f, "	&d4_cust_%d_vals[0]%s\n", i, (i<n) ? "," : "");
