@@ -93,12 +93,13 @@ int
 do1arg (G *g, const char *opt, const char *arg)
 {
 	struct arglist *adesc;
-
 	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
 		int eaten = adesc->match (opt, adesc);
+		printf("%s %d eaten=%d\n", __FUNCTION__, __LINE__, eaten);
 		if (eaten > 0) {
+			printf("%s %d\n", __FUNCTION__, __LINE__);
 			if (eaten > 1 && (arg == NULL || *arg == '-'))
-				shorthelp ("\"%s\" option requires additional argument\n", opt);
+				shorthelp (g, "\"%s\" option requires additional argument\n", opt);
 			adesc->valf (opt, arg, adesc);
 #if !D4CUSTOM
 			if (adesc->customf == NULL) {
@@ -113,11 +114,11 @@ do1arg (G *g, const char *opt, const char *arg)
 #if !D4CUSTOM
 	/* does it look like a possible Dinero III option? */
 	if (opt[0]=='-' && strchr ("uidbSarfpPwAQzZ", opt[1]) != NULL)
-		shorthelp ("\"%s\" option not recognized for Dinero IV;\n"
+		shorthelp (g, "\"%s\" option not recognized for Dinero IV;\n"
 			   "try \"%s -dineroIII\" for Dinero III --> IV option correspondence.\n",
 			   opt, g->progname);
 #endif
-	shorthelp ("\"%s\" option not recognized.\n", opt);
+	//shorthelp (g, "\"%s\" option not recognized.\n", opt); FIXME disable to workaround a segfault
 	return 0;	/* can't really get here, but some compilers get upset if we don't have a return value */
 }
 
@@ -131,22 +132,26 @@ doargs (G *g, int argc, char **argv)
 	struct arglist *adesc;
 	char **v = argv+1;
 	int x;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 #if !D4CUSTOM
 	g->cust_argv = malloc ((argc+1) * sizeof(argv[0]));
 	if (g->cust_argv == NULL)
 		die (g, "no memory to copy args for possible -custom\n");
 #endif
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	for (adesc = g->args;  adesc->optstring != NULL;  adesc++)
 		if (g->optstringmax < (int)strlen(adesc->optstring) + adesc->pad)
 			g->optstringmax = strlen(adesc->optstring) + adesc->pad;
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	while (argc > 1) {
 		const char *opt = v[0];
 		const char *arg = (argc>1) ? v[1] : NULL;
 		x = do1arg (g, opt, arg);
 		v += x;
 		argc -= x;
+		printf("%s %d argc=%d x=%d\n", __FUNCTION__, __LINE__, argc, x);
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	// verify_options();
 }
 
@@ -285,6 +290,7 @@ argscale_uintd (const char *arg, double *var)
 int
 match_0arg (const char *opt, const struct arglist *adesc)
 {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	return strcmp (opt, adesc->optstring) == 0;
 }
 
@@ -295,6 +301,7 @@ match_0arg (const char *opt, const struct arglist *adesc)
 int
 pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
 {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	int level;
 	int idu;
 	const char *nextc = level_idu (g, opt, &level, &idu);
@@ -310,6 +317,7 @@ pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
 int
 match_1arg (const char *opt, const struct arglist *adesc)
 {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	return 2 * (strcmp (opt, adesc->optstring) == 0);
 }
 
@@ -320,6 +328,7 @@ match_1arg (const char *opt, const struct arglist *adesc)
 int
 pmatch_1arg (G *g, const char *opt, const struct arglist *adesc)
 {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	int level;
 	int idu;
 	const char *nextc = level_idu (g, opt, &level, &idu);
@@ -515,7 +524,7 @@ val_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 
 	*(unsigned int *)adesc->var = strtoul (arg, &nextc, 10);
 	if (*nextc != 0)
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 }
 
 
@@ -536,7 +545,7 @@ pval_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 	(void) level_idu (g, opt, &level, &idu);
 	argui = strtoul (arg, &nextc, 10);
 	if (*nextc != 0)
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	(*var)[idu][level] = argui;
 }
 
@@ -548,7 +557,7 @@ void
 val_scale_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	if (!argscale_uint (arg, adesc->var))
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 }
 
 
@@ -560,7 +569,7 @@ void
 val_scale_uintd (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	if (!argscale_uintd (arg, adesc->var))
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 }
 
 
@@ -580,7 +589,7 @@ pval_scale_uint (G *g, const char *opt, const char *arg, const struct arglist *a
 
 	(void) level_idu (g, opt, &level, &idu);
 	if (!argscale_uint (arg, &argui))
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	(*var)[idu][level] = argui;
 }
 
@@ -595,9 +604,9 @@ val_scale_pow2 (G *g, const char *opt, const char *arg, const struct arglist *ad
 	unsigned int *ui = adesc->var;
 
 	if (!argscale_uint (arg, ui))
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	if (*ui == 0 || (*ui & (*ui-1)) != 0)
-		shorthelp ("option %s arg must be power of 2\n", opt);
+		shorthelp (g, "option %s arg must be power of 2\n", opt);
 }
 
 
@@ -617,9 +626,9 @@ pval_scale_pow2 (G *g, const char *opt, const char *arg, const struct arglist *a
 
 	(void) level_idu (g, opt, &level, &idu);
 	if (!argscale_uint (arg, &argui))
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	if (argui == 0 || (argui & (argui-1)) != 0)
-		shorthelp ("option %s arg must be power of 2\n", opt);
+		shorthelp (g, "option %s arg must be power of 2\n", opt);
 	(*var)[idu][level] = argui;
 }
 
@@ -633,7 +642,7 @@ val_char (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 	int *var = adesc->var;
 
 	if (strlen (arg) != 1)
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	*var = *arg;
 }
 
@@ -650,7 +659,7 @@ pval_char (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 
 	(void) level_idu (g, opt, &level, &idu);
 	if (strlen (arg) != 1)
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	(*var)[idu][level] = *arg;
 }
 
@@ -677,7 +686,7 @@ val_addr (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 
 	argl = strtoul (arg, &nextc, 16);
 	if (*nextc != 0)
-		shorthelp ("bad option: %s %s\n", opt, arg);
+		shorthelp (g, "bad option: %s %s\n", opt, arg);
 	*var = argl;
 }
 
@@ -1981,10 +1990,13 @@ main (int argc, char **argv)
 				g->progname = cp+1;
 		}
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);	
 	doargs (g, argc, argv);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	verify_options(g);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	initialize_caches (g, &g->ci, &g->cd);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 #if !D4CUSTOM
 	if (g->customname != NULL) {
 		customize_caches(g);
