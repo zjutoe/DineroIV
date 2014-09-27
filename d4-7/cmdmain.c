@@ -67,6 +67,9 @@
 #include "tracein.h"
 #include "global.h"
 
+extern struct arglist args[];
+extern int nargs;
+
 /* private prototypes for this file */
 extern int do1arg (G *g, const char *, const char *);
 extern void doargs (G *g, int, char **);
@@ -93,11 +96,11 @@ int
 do1arg (G *g, const char *opt, const char *arg)
 {
 	struct arglist *adesc;
-	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
-		int eaten = adesc->match (opt, adesc);
-		printf("%s %d eaten=%d\n", __FUNCTION__, __LINE__, eaten);
+	printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
+	for (adesc = args;  adesc->optstring != NULL;  adesc++) {
+		printf("%s %d %s\n", __FUNCTION__, __LINE__, adesc->optstring);
+		int eaten = adesc->match (g, opt, adesc);
 		if (eaten > 0) {
-			printf("%s %d\n", __FUNCTION__, __LINE__);
 			if (eaten > 1 && (arg == NULL || *arg == '-'))
 				shorthelp (g, "\"%s\" option requires additional argument\n", opt);
 			adesc->valf (opt, arg, adesc);
@@ -132,26 +135,24 @@ doargs (G *g, int argc, char **argv)
 	struct arglist *adesc;
 	char **v = argv+1;
 	int x;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+
 #if !D4CUSTOM
 	g->cust_argv = malloc ((argc+1) * sizeof(argv[0]));
 	if (g->cust_argv == NULL)
 		die (g, "no memory to copy args for possible -custom\n");
 #endif
-	printf("%s %d\n", __FUNCTION__, __LINE__);
-	for (adesc = g->args;  adesc->optstring != NULL;  adesc++)
+
+	for (adesc = args;  adesc->optstring != NULL;  adesc++)
 		if (g->optstringmax < (int)strlen(adesc->optstring) + adesc->pad)
 			g->optstringmax = strlen(adesc->optstring) + adesc->pad;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+
 	while (argc > 1) {
 		const char *opt = v[0];
 		const char *arg = (argc>1) ? v[1] : NULL;
 		x = do1arg (g, opt, arg);
 		v += x;
 		argc -= x;
-		printf("%s %d argc=%d x=%d\n", __FUNCTION__, __LINE__, argc, x);
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
 	// verify_options();
 }
 
@@ -167,26 +168,36 @@ level_idu (G *g, const char *opt, int *levelp, int *idup)
 	int level;
 	char *nextc;
 
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+
 	if (*opt++ != '-' || *opt++ != 'l')
 		return NULL;	/* no initial -l */
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (*opt == '-' || *opt == '+')
 		return NULL;	/* we don't accept a sign here */
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	level = strtol (opt, &nextc, 10);
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (nextc == opt)
 		return NULL;	/* no digits */
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (level <= 0 || level > MAX_LEV)
 		return NULL;	/* level out of range */
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (*nextc++ != '-')	/* missing - after level */
 		return NULL;
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	switch (*nextc++) {
 	default:	return NULL;	/* bad idu value */
 	case 'u':	*idup = 0; break;
 	case 'i':	*idup = 1; break;
 	case 'd':	*idup = 2; break;
 	}
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	*levelp = level - 1;
 	if (level > g->maxlevel)
 		g->maxlevel = level;
+	printf("%s %d nextc=%s\n", __FUNCTION__, __LINE__, nextc);
 	return nextc;
 }
 
@@ -288,9 +299,9 @@ argscale_uintd (const char *arg, double *var)
  * Recognize an option with no args
  */
 int
-match_0arg (const char *opt, const struct arglist *adesc)
+match_0arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d %s\n", __FUNCTION__, __LINE__, opt);
 	return strcmp (opt, adesc->optstring) == 0;
 }
 
@@ -301,7 +312,7 @@ match_0arg (const char *opt, const struct arglist *adesc)
 int
 pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	printf("%s %d g=%x\n", __FUNCTION__, __LINE__, g);
 	int level;
 	int idu;
 	const char *nextc = level_idu (g, opt, &level, &idu);
@@ -315,9 +326,9 @@ pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
  * Recognize an option with 1 arg
  */
 int
-match_1arg (const char *opt, const struct arglist *adesc)
+match_1arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	printf("%s %d %s vs %s\n", __FUNCTION__, __LINE__, opt, adesc->optstring);
 	return 2 * (strcmp (opt, adesc->optstring) == 0);
 }
 
@@ -328,12 +339,13 @@ match_1arg (const char *opt, const struct arglist *adesc)
 int
 pmatch_1arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	int level;
 	int idu;
 	const char *nextc = level_idu (g, opt, &level, &idu);
 	if (nextc == NULL)
 		return 0;	/* not recognized */
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	return 2 * (strcmp (nextc, adesc->optstring) == 0);
 }
 
@@ -360,12 +372,12 @@ val_help (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 	int i;
 
 	printf ("Usage: %s [options]\nValid options:\n", g->progname);
-	for (i = 0;  i < g->nargs;  i++) {
-		if (g->args[i].optstring != NULL && g->args[i].help != NULL) {
+	for (i = 0;  i < nargs;  i++) {
+		if (args[i].optstring != NULL && args[i].help != NULL) {
 			putchar (' ');
-			g->args[i].help (&g->args[i]);
-			if (g->args[i].defstr != NULL)
-				printf (" (default %s)", g->args[i].defstr);
+			args[i].help (&args[i]);
+			if (args[i].defstr != NULL)
+				printf (" (default %s)", args[i].defstr);
 			putchar ('\n');
 		}
 	}
@@ -1074,7 +1086,7 @@ summarize_caches (G *g, d4cache *ci, d4cache *cd)
 	printf ("\n---Summary of options "
 		"(-help option gives usage information).\n\n");
 
-	for (adesc = g->args;  adesc->optstring != NULL;  adesc++)
+	for (adesc = args;  adesc->optstring != NULL;  adesc++)
 		if (adesc->sumf != (void (*)())NULL)
 			adesc->sumf (adesc, stdout);
 }
@@ -1818,7 +1830,7 @@ customize_caches(G *g)
 
 	/* call all customf functions */
 	fprintf (f, "\n#include \"cmdargs.h\"\n");
-	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
+	for (adesc = args;  adesc->optstring != NULL;  adesc++) {
 		if (adesc->customf != NULL)
 			adesc->customf (adesc, f);
 	}
@@ -1963,7 +1975,6 @@ int do_cache_ref(G *g,
 		return -1;
 }
 
-
 /*
  * Everything starts here
  */
@@ -1972,13 +1983,16 @@ main (int argc, char **argv)
 {
 	d4memref r;
 	G *g = (G*)malloc(sizeof(G));	
+	if (g == NULL)
+		printf("g malloc failed\n");
 	double tmaxcount = 0, tintcount;
 	double flcount;
 	g->progname = "dineroIV";
 	g->cust_argc = 1;
 	g->informat = DEFVAL_informat;
 
-	init_args(g, g->args);
+	// init_args(g, g->args);
+	// memcpy(g->args, args, nargs * sizeof(args[0]));
 
 	if (argc > 0) {
 		char *cp;
@@ -1990,13 +2004,10 @@ main (int argc, char **argv)
 				g->progname = cp+1;
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);	
 	doargs (g, argc, argv);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
 	verify_options(g);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
 	initialize_caches (g, &g->ci, &g->cd);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+
 #if !D4CUSTOM
 	if (g->customname != NULL) {
 		customize_caches(g);

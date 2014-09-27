@@ -76,9 +76,9 @@ extern double argscale_uintd (const char *arg, double *var);
  * Match functions -- recognize the arg on the command line
  * Return the number of argv elements to be consumed.
  */
-extern int match_0arg (const char *, const struct arglist *);
+extern int match_0arg (G *g, const char *, const struct arglist *);
 extern int pmatch_0arg (G *g, const char *, const struct arglist *);
-extern int match_1arg (const char *, const struct arglist *);
+extern int match_1arg (G *g, const char *, const struct arglist *);
 extern int pmatch_1arg (G *g, const char *, const struct arglist *); /* with -ln-idu prefix */
 #if D4CUSTOM
 extern int match_bogus (const char *, const struct arglist *);

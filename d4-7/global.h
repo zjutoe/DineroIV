@@ -19,26 +19,7 @@
 #define MAX_ARGS 128
 #endif
 
-struct arglist {
-	const char *optstring;	  /* string to match, without -ln-idu if applicable */
-	int pad;		  /* how many extra chars will help print? */
-	void *var;		  /* scalar variable or array to modify */
-	char *defstr;		  /* default value, as a string */
-	const char *customstring; /* arg to use for custom version */
-	const char *helpstring;	  /* string for help line */
-
-				  /* function to recognize arg on command line */
-	int (*match)(const char *opt, const struct arglist *);
-				  /* valf is function to set value */
-	void (*valf)(const char *opt, const char *arg, const struct arglist *);
-				  /* customf produces definitions for custom version */
-	void (*customf)(const struct arglist *, FILE *);
-				  /* sumf prints summary line */
-	void (*sumf)(const struct arglist *, FILE *);
-				  /* help prints line for -help */
-	void (*help)(const struct arglist *);
-};
-
+//struct arglist;
 
 typedef struct _G {
 
@@ -55,19 +36,9 @@ char *customname;			/* for -custom, name of executable */
 
 d4cache *ci, *cd;		//the i-cache and d-cache
 
-/* Some globals, defined in cmdargs.c */
-struct arglist args[MAX_ARGS];	/* defined in cmdargs.c */
-int nargs;		/* num entries in args[] */
-// int optstringmax;	/* longest option string */
-
-//char *customname;	/* for -custom, name of executable */
-//double skipcount;	/* for -skipcount */
-//double flushcount;	/* for -flushcount */
-//double maxcount;		/* for -maxcount */
-//double stat_interval;	/* for -stat-interval */
-//long on_trigger;		/* for -on-trigger */
-//long off_trigger;	/* for -off-trigger */
-//int stat_idcombine;	/* for -stat-idcombine */
+// /* Some globals, defined in cmdargs.c */
+// struct arglist args[MAX_ARGS];	/* defined in cmdargs.c */
+// int nargs;		/* num entries in args[] */
 
 /*
  * The size of each cache is given by
@@ -124,6 +95,24 @@ int stat_idcombine;
 
 } G;
 
-// extern G *g;
+struct arglist {
+	const char *optstring;	  /* string to match, without -ln-idu if applicable */
+	int pad;		  /* how many extra chars will help print? */
+	void *var;		  /* scalar variable or array to modify */
+	char *defstr;		  /* default value, as a string */
+	const char *customstring; /* arg to use for custom version */
+	const char *helpstring;	  /* string for help line */
+
+				  /* function to recognize arg on command line */
+	int (*match)(G *g, const char *opt, const struct arglist *);
+				  /* valf is function to set value */
+	void (*valf)(const char *opt, const char *arg, const struct arglist *);
+				  /* customf produces definitions for custom version */
+	void (*customf)(const struct arglist *, FILE *);
+				  /* sumf prints summary line */
+	void (*sumf)(const struct arglist *, FILE *);
+				  /* help prints line for -help */
+	void (*help)(const struct arglist *);
+};
 
 #endif	//#ifdef _GLOBAL_H
