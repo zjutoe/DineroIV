@@ -57,6 +57,7 @@
 #include "d4.h"
 #include "cmdd4.h"
 #include "tracein.h"
+#include "global.h"
 
 d4memref (*input_function) (void);
 
@@ -65,11 +66,11 @@ d4memref (*input_function) (void);
  * We also take care of skipping records:f
  */
 void
-verify_trace_format()
+verify_trace_format(G *g)
 {
-	switch (informat) {
-	default:  shorthelp ("unknown input format '%c'\n", informat);
-	case 0:	  shorthelp ("no input format specified\n");
+	switch (g->informat) {
+	default:  shorthelp (g, "unknown input format '%c'\n", g->informat);
+	case 0:	  shorthelp (g, "no input format specified\n");
 	case 'D':				/* extended "din" format */
 		  input_function = tracein_xdin;
 		  break;

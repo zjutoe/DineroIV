@@ -43,13 +43,14 @@
  * $Header: /home/edler/dinero/d4/RCS/tracein.h,v 1.4 1997/12/08 19:35:24 edler Exp $
  */
 
+#include "global.h"
 
 /* One of the following functions is called to generate each trace record */
-extern d4memref tracein_xdin (void);
-extern d4memref tracein_din (void);
-extern d4memref tracein_pixie32 (void);
-extern d4memref tracein_pixie64 (void);
-extern d4memref tracein_binary (void);
+extern d4memref tracein_xdin (G *g);
+extern d4memref tracein_din (G *g);
+extern d4memref tracein_pixie32 (G *g);
+extern d4memref tracein_pixie64 (G *g);
+extern d4memref tracein_binary (G *g);
 
 /* A pointer to one of the above functions */
 extern d4memref (*input_function) (void);
@@ -61,7 +62,7 @@ extern d4memref (*input_function) (void);
 extern int informat;
 
 /* check that a recognized input format has been specified */
-extern void verify_trace_format (void);
+extern void verify_trace_format (G *g);
 
 /* list valid choices for -informat */
 extern void help_trace_format (int indent);

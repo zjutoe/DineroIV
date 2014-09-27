@@ -65,7 +65,7 @@
  */
 
 d4memref
-tracein_din()
+tracein_din(G *g)
 {
 	static double tcount = 1;	/* double to increase range */
 	static char badlabel[] = "din format error on trace record %.0f: non hex digit (code 0x%x) in label\n";
@@ -87,27 +87,27 @@ tracein_din()
 		return r;		/* this will trigger normal termination */
 	}
 	if (c == '\n')
-		die (shortline, tcount);
+		die (g, shortline, tcount);
 
 	/* typically the label is just 1 char */
 	if (!isxdigit(c))
-		die (badlabel, tcount, c);
+		die (g,badlabel, tcount, c);
 	atype = c - (isdigit(c) ? '0' : ((islower(c) ? 'a' : 'A') - 10));
 	c = getchar();
 	if (c != ' ' && c != '\t') {	/* rarely get rest of label */
 		if ((c == 'x' || c == 'X') && atype == 0)
 			c = getchar();	/* ignore leading 0x or 0X */
 		if (c == '\n' || c == EOF)
-			die (shortline, tcount);
+			die (g,shortline, tcount);
 		while (isxdigit(c)) {
 			atype *= 16;
 			atype += c - (isdigit(c) ? '0' : ((islower(c) ? 'a' : 'A') - 10));
 			c = getchar();
 		}
 		if (c == '\n' || c == EOF)
-			die (shortline, tcount);
+			die (g,shortline, tcount);
 		if (c != ' ' && c != '\t')
-			die (badlabel, tcount, c);
+			die (g,badlabel, tcount, c);
 	}
 
 	/* skip whitespace between label and address */
@@ -115,11 +115,11 @@ tracein_din()
 		c = getchar();
 	} while (c == ' ' || c == '\t');
 	if (c == '\n' || c == EOF)
-		die (shortline, tcount);
+		die (g,shortline, tcount);
 
 	/* now get the address */
 	if (!isxdigit(c))
-		die (badaddr, tcount, c);
+		die (g,badaddr, tcount, c);
 	addr = c - (isdigit(c) ? '0' : ((islower(c) ? 'a' : 'A') - 10));
 	c = getchar(); 
 	if ((c == 'x' || c == 'X') && addr == 0)
@@ -130,7 +130,7 @@ tracein_din()
 		c = getchar();
 	}
 	if (c != EOF && c != '\n' && c != ' ' && c != '\t')
-		die (badaddr, tcount, c);
+		die (g,badaddr, tcount, c);
 
 	/* skip rest of line */
 	while (c != '\n' && c != EOF)

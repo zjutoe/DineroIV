@@ -69,7 +69,7 @@
  */
 
 d4memref
-tracein_xdin()
+tracein_xdin(G *g)
 {
 	static double tcount = 1;	/* double to increase range */
 	static char badatype[] = "xdin format error on trace record %.0f: unknown atype: %s"
@@ -95,7 +95,7 @@ tracein_xdin()
 		return r;		/* this will trigger normal termination */
 	}
 	if (c == '\n')
-		die (shortline, tcount);
+		die (g, shortline, tcount);
 
 	/* the accesstype is just 1 char */
 	switch (c) {
@@ -103,7 +103,7 @@ tracein_xdin()
 		errline[0] = c;
 		fgets (errline+1, sizeof(errline)-1, stdin);
 		errline[strlen(errline)-1] = '\n'; /* ensure trailing \n */
-		die (badatype, tcount, errline);
+		die (g, badatype, tcount, errline);
 		/* no return */
 	case 'r':
 	case 'R':
@@ -132,13 +132,13 @@ tracein_xdin()
 	}
 	cc = getchar();
 	if (cc == '\n')
-		die (shortline, tcount);
+		die (g, shortline, tcount);
 	if (cc != ' ' && cc != '\t') {
 		errline[0] = c;
 		errline[1] = cc;
 		fgets (errline+2, sizeof(errline)-2, stdin);
 		errline[strlen(errline)-1] = '\n'; /* ensure trailing \n */
-		die (badatype, tcount, errline);
+		die (g, badatype, tcount, errline);
 	}
 
 	/* skip whitespace between atype and address */
@@ -146,11 +146,11 @@ tracein_xdin()
 		c = getchar();
 	} while (c == ' ' || c == '\t');
 	if (c == '\n' || c == EOF)
-		die (shortline, tcount);
+		die (g, shortline, tcount);
 
 	/* now get the address */
 	if (!isxdigit(c))
-		die (badaddr, tcount, c);
+		die (g, badaddr, tcount, c);
 	addr = c - (isdigit(c) ? '0' : ((islower(c) ? 'a' : 'A') - 10));
 	c = getchar(); 
 	if ((c == 'x' || c == 'X') && addr == 0)
@@ -161,17 +161,17 @@ tracein_xdin()
 		c = getchar();
 	}
 	if (c != EOF && c != '\n' && c != ' ' && c != '\t')
-		die (badaddr, tcount, c);
+		die (g, badaddr, tcount, c);
 
 	/* skip whitespace between addr and size */
 	while (c == ' ' || c == '\t')
 		c = getchar();
 	if (c == EOF || c == '\n')
-		die (nosize, tcount);
+		die (g, nosize, tcount);
 	
 	/* now get the size */
 	if (!isxdigit(c))
-		die (badsize, tcount, c);
+		die (g, badsize, tcount, c);
 	size = c - (isdigit(c) ? '0' : ((islower(c) ? 'a' : 'A') - 10));
 	c = getchar(); 
 	if ((c == 'x' || c == 'X') && size == 0)
@@ -182,7 +182,7 @@ tracein_xdin()
 		c = getchar();
 	}
 	if (c != EOF && c != '\n' && c != ' ' && c != '\t')
-		die (badsize, tcount, c);
+		die (g, badsize, tcount, c);
 
 	/* skip rest of line */
 	while (c != '\n' && c != EOF)

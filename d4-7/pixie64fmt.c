@@ -142,7 +142,7 @@ static d4memref *sptr = stack;	/* stack pointer */
 #define pop_ref()	*--sptr
 
 d4memref
-tracein_pixie64()
+tracein_pixie64(G *g)
 {
 	static char dynlib[] = "pixie64 input (reftype %d): dynamically linked executable not supported\n";
 	static int once = 1;
@@ -163,7 +163,7 @@ again:
 	if (inptr == NULL) {	/* need to fill inbuf */
 		int nread = read (0, inbuf, sizeof inbuf);
 		if (nread < 0)
-			die ("pixie64 input error: %s\n", strerror (errno));
+			die (g, "pixie64 input error: %s\n", strerror (errno));
 		if (nread <= 0) {
 			r.address = 0;
 			r.size = 0;
@@ -171,13 +171,13 @@ again:
 			return r;
 		}
 		if ((nread % 8) != 0)
-			die ("pixie64 trace input not double word aligned\n");
+			die (g, "pixie64 trace input not double word aligned\n");
 		inptr = inbuf;
 		endptr = inbuf + nread;
 		if (once) {
 			once = 0;
 			if (inptr[PIXIE_SWAB ? 7 : 0] != REF_UNDEF)
-				die ("pixie64 input: header format %d instead of %d\n",
+				die (g, "pixie64 input: header format %d instead of %d\n",
 				     inptr[PIXIE_SWAB ? 7 : 0], REF_UNDEF);
 			inptr += 8;
 			if (inptr >= endptr)
@@ -206,7 +206,7 @@ again:
 	case REF_UNDEF:	/* should not happen */
 	default:
 		fprintf (stderr,
-			"%s: unknown pixie64 reftype=%u\n", progname, reftype);
+			"%s: unknown pixie64 reftype=%u\n", g->progname, reftype);
 		goto again;
 
 	case DSO_OPEN:
@@ -229,11 +229,11 @@ again:
 		goto again;
 	case DSO_MOVED_DYNAMIC:
 		if (addr != 0)
-			die (dynlib, reftype);
+			die (g, dynlib, reftype);
 		goto again;
 	case NUM_DATA_SEGMENTS:
 		if (addr != 1)
-			die (dynlib, reftype);
+			die (g, dynlib, reftype);
 		goto again;
 	case BB:
 		iaddr = addr << 2;	/* convert word address to byte */

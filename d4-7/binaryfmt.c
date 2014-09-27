@@ -69,7 +69,7 @@
 #endif
 
 d4memref
-tracein_binary()
+tracein_binary(G *g)
 {
 	static unsigned char inbuf[RECORD_SIZE*1024];
 	static int hiwater = 0;
@@ -86,7 +86,7 @@ tracein_binary()
 			inptr = 0;
 		nread = read (0, &inbuf[inptr], sizeof(inbuf) - inptr);
 		if (nread < 0)
-			die ("binary input error: %s\n", strerror (errno));
+			die (g, "binary input error: %s\n", strerror (errno));
 		if (nread <= 0) {
 			r.accesstype = D4TRACE_END;
 			r.address = 0;

@@ -109,7 +109,7 @@ static d4memref *sptr = stack;	/* stack pointer */
 
 
 d4memref
-tracein_pixie32()
+tracein_pixie32(G *g)
 {
 	static unsigned char inbuf[4096];
 	static unsigned char *inptr = NULL;
@@ -130,7 +130,7 @@ again:
 	if (inptr == NULL) {	/* need to fill inbuf */
 		int nread = read (0, inbuf, sizeof inbuf);
 		if (nread < 0)
-			die ("pixie32 input error: %s\n", strerror (errno));
+			die (g, "pixie32 input error: %s\n", strerror (errno));
 		if (nread <= 0) {
 			r.address = 0;
 			r.size = 0;
@@ -138,7 +138,7 @@ again:
 			return r;
 		}
 		if ((nread % 4) != 0)
-			die ("pixie32 trace input not word aligned\n");
+			die (g, "pixie32 trace input not word aligned\n");
 		inptr = inbuf;
 		endptr = inbuf + nread;
 	}
@@ -173,7 +173,7 @@ again:
 	switch (reftype) {
 	default:
 		fprintf (stderr,
-			"%s: unknown pixie32 reftype=%u\n", progname, reftype);
+			"%s: unknown pixie32 reftype=%u\n", g->progname, reftype);
 		/* fall through */
 	case SYSCALL:
 	case LW:

@@ -65,28 +65,17 @@
 #include "cmdd4.h"
 #include "cmdargs.h"
 #include "tracein.h"
-
-
-/* some global variables */
-char *progname = "dineroIV";		/* for error messages */
-int optstringmax;			/* for help_* functions */
-d4cache *levcache[3][MAX_LEV];		/* to locate cache by level and type */
-d4cache *mem;				/* which cache represents simulated memory? */
-#if !D4CUSTOM
-const char **cust_argv;			/* for args to pass to custom version */
-int cust_argc = 1;			/* how many args for custom version */
-char *customname;			/* for -custom, name of executable */
-#endif
+#include "global.h"
 
 /* private prototypes for this file */
-extern int do1arg (const char *, const char *);
-extern void doargs (int, char **);
-extern void summarize_caches (d4cache *, d4cache *);
-extern void dostats (void);
+extern int do1arg (G *g, const char *, const char *);
+extern void doargs (G *g, int, char **);
+extern void summarize_caches (G *g, d4cache *, d4cache *);
+extern void dostats (G *g);
 extern void do1stats (d4cache *);
-extern d4memref next_trace_item (void);
+extern d4memref next_trace_item (G *g);
 #if !D4CUSTOM
-extern void customize_caches (void);
+extern void customize_caches (G *g);
 #endif
 
 
@@ -101,11 +90,11 @@ extern void customize_caches (void);
  * (Doesn't really support more than 1 or 2 consumed.)
  */
 int
-do1arg (const char *opt, const char *arg)
+do1arg (G *g, const char *opt, const char *arg)
 {
 	struct arglist *adesc;
 
-	for (adesc = args;  adesc->optstring != NULL;  adesc++) {
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
 		int eaten = adesc->match (opt, adesc);
 		if (eaten > 0) {
 			if (eaten > 1 && (arg == NULL || *arg == '-'))
@@ -113,9 +102,9 @@ do1arg (const char *opt, const char *arg)
 			adesc->valf (opt, arg, adesc);
 #if !D4CUSTOM
 			if (adesc->customf == NULL) {
-				cust_argv[cust_argc++] = opt;
+				g->cust_argv[g->cust_argc++] = opt;
 				if (eaten>1)
-					cust_argv[cust_argc++] = arg;
+					g->cust_argv[g->cust_argc++] = arg;
 			}
 #endif
 			return eaten;
@@ -126,7 +115,7 @@ do1arg (const char *opt, const char *arg)
 	if (opt[0]=='-' && strchr ("uidbSarfpPwAQzZ", opt[1]) != NULL)
 		shorthelp ("\"%s\" option not recognized for Dinero IV;\n"
 			   "try \"%s -dineroIII\" for Dinero III --> IV option correspondence.\n",
-			   opt, progname);
+			   opt, g->progname);
 #endif
 	shorthelp ("\"%s\" option not recognized.\n", opt);
 	return 0;	/* can't really get here, but some compilers get upset if we don't have a return value */
@@ -137,28 +126,28 @@ do1arg (const char *opt, const char *arg)
  * Process all the command line args
  */
 void
-doargs (int argc, char **argv)
+doargs (G *g, int argc, char **argv)
 {
 	struct arglist *adesc;
 	char **v = argv+1;
 	int x;
 
 #if !D4CUSTOM
-	cust_argv = malloc ((argc+1) * sizeof(argv[0]));
-	if (cust_argv == NULL)
-		die ("no memory to copy args for possible -custom\n");
+	g->cust_argv = malloc ((argc+1) * sizeof(argv[0]));
+	if (g->cust_argv == NULL)
+		die (g, "no memory to copy args for possible -custom\n");
 #endif
-	for (adesc = args;  adesc->optstring != NULL;  adesc++)
-		if (optstringmax < (int)strlen(adesc->optstring) + adesc->pad)
-			optstringmax = strlen(adesc->optstring) + adesc->pad;
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++)
+		if (g->optstringmax < (int)strlen(adesc->optstring) + adesc->pad)
+			g->optstringmax = strlen(adesc->optstring) + adesc->pad;
 	while (argc > 1) {
 		const char *opt = v[0];
 		const char *arg = (argc>1) ? v[1] : NULL;
-		x = do1arg (opt, arg);
+		x = do1arg (g, opt, arg);
 		v += x;
 		argc -= x;
 	}
-	verify_options();
+	// verify_options();
 }
 
 
@@ -168,7 +157,7 @@ doargs (int argc, char **argv)
  * or NULL if the prefix is not recognized.
  */
 char *
-level_idu (const char *opt, int *levelp, int *idup)
+level_idu (G *g, const char *opt, int *levelp, int *idup)
 {
 	int level;
 	char *nextc;
@@ -191,8 +180,8 @@ level_idu (const char *opt, int *levelp, int *idup)
 	case 'd':	*idup = 2; break;
 	}
 	*levelp = level - 1;
-	if (level > maxlevel)
-		maxlevel = level;
+	if (level > g->maxlevel)
+		g->maxlevel = level;
 	return nextc;
 }
 
@@ -304,11 +293,11 @@ match_0arg (const char *opt, const struct arglist *adesc)
  * Recognize an option with no args and the -ln-idu prefix
  */
 int
-pmatch_0arg (const char *opt, const struct arglist *adesc)
+pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
 {
 	int level;
 	int idu;
-	const char *nextc = level_idu (opt, &level, &idu);
+	const char *nextc = level_idu (g, opt, &level, &idu);
 	if (nextc == NULL)
 		return 0;	/* not recognized */
 	return 1 * (strcmp (nextc, adesc->optstring) == 0);
@@ -329,11 +318,11 @@ match_1arg (const char *opt, const struct arglist *adesc)
  * Recognize an option with 1 arg and the -ln-idu prefix
  */
 int
-pmatch_1arg (const char *opt, const struct arglist *adesc)
+pmatch_1arg (G *g, const char *opt, const struct arglist *adesc)
 {
 	int level;
 	int idu;
-	const char *nextc = level_idu (opt, &level, &idu);
+	const char *nextc = level_idu (g, opt, &level, &idu);
 	if (nextc == NULL)
 		return 0;	/* not recognized */
 	return 2 * (strcmp (nextc, adesc->optstring) == 0);
@@ -357,17 +346,17 @@ match_bogus (const char *opt, const struct arglist *adesc)
  * Produce help message in response to -help
  */
 void
-val_help (const char *opt, const char *arg, const struct arglist *adesc)
+val_help (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	int i;
 
-	printf ("Usage: %s [options]\nValid options:\n", progname);
-	for (i = 0;  i < nargs;  i++) {
-		if (args[i].optstring != NULL && args[i].help != NULL) {
+	printf ("Usage: %s [options]\nValid options:\n", g->progname);
+	for (i = 0;  i < g->nargs;  i++) {
+		if (g->args[i].optstring != NULL && g->args[i].help != NULL) {
 			putchar (' ');
-			args[i].help (&args[i]);
-			if (args[i].defstr != NULL)
-				printf (" (default %s)", args[i].defstr);
+			g->args[i].help (&g->args[i]);
+			if (g->args[i].defstr != NULL)
+				printf (" (default %s)", g->args[i].defstr);
 			putchar ('\n');
 		}
 	}
@@ -388,7 +377,7 @@ val_help (const char *opt, const char *arg, const struct arglist *adesc)
  * Produce help message in response to -copyright
  */
 void
-val_helpcr (const char *opt, const char *arg, const struct arglist *adesc)
+val_helpcr (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	printf ("Dinero IV is copyrighted software\n");
 	printf ("\n");
@@ -437,7 +426,7 @@ val_helpcr (const char *opt, const char *arg, const struct arglist *adesc)
  * Produce help message in response to -contact
  */
 void
-val_helpw (const char *opt, const char *arg, const struct arglist *adesc)
+val_helpw (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	printf ("Dinero IV was written by Jan Edler and Mark D. Hill.\n");
 	printf ("\n");
@@ -465,7 +454,7 @@ val_helpw (const char *opt, const char *arg, const struct arglist *adesc)
  * Explain DineroIII->DineroIV option mappings
  */
 void
-val_helpd3 (const char *opt, const char *arg, const struct arglist *adesc)
+val_helpd3 (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	printf ("Summary of DineroIV replacements for DineroIII options:\n\n");
 	printf ("DineroIII    DineroIV\n");
@@ -495,7 +484,7 @@ val_helpd3 (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle an option with no args (i.e., a boolean option).
  */
 void
-val_0arg (const char *opt, const char *arg, const struct arglist *adesc)
+val_0arg (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	*(int *) adesc->var = 1;
 }
@@ -505,13 +494,13 @@ val_0arg (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle an option with no args (i.e., a boolean option) and the -ln-idu-prefix.
  */
 void
-pval_0arg (const char *opt, const char *arg, const struct arglist *adesc)
+pval_0arg (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	int (*var)[3][MAX_LEV] = adesc->var;
 	int level;
 	int idu;
 
-	(void) level_idu (opt, &level, &idu);
+	(void) level_idu (g, opt, &level, &idu);
 	(*var)[idu][level] = 1;
 }
 
@@ -520,7 +509,7 @@ pval_0arg (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle unsigned integer arg.
  */
 void
-val_uint (const char *opt, const char *arg, const struct arglist *adesc)
+val_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	char *nextc;
 
@@ -536,7 +525,7 @@ val_uint (const char *opt, const char *arg, const struct arglist *adesc)
  * so level_idu() can't return NULL.
  */
 void
-pval_uint (const char *opt, const char *arg, const struct arglist *adesc)
+pval_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
 	unsigned int argui;
@@ -544,7 +533,7 @@ pval_uint (const char *opt, const char *arg, const struct arglist *adesc)
 	int idu;
 	char *nextc;
 
-	(void) level_idu (opt, &level, &idu);
+	(void) level_idu (g, opt, &level, &idu);
 	argui = strtoul (arg, &nextc, 10);
 	if (*nextc != 0)
 		shorthelp ("bad option: %s %s\n", opt, arg);
@@ -556,7 +545,7 @@ pval_uint (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle unsigned integer arg with optional scaling (k,m,g, etc).
  */
 void
-val_scale_uint (const char *opt, const char *arg, const struct arglist *adesc)
+val_scale_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	if (!argscale_uint (arg, adesc->var))
 		shorthelp ("bad option: %s %s\n", opt, arg);
@@ -568,7 +557,7 @@ val_scale_uint (const char *opt, const char *arg, const struct arglist *adesc)
  * Here we use double for extra integer range.
  */
 void
-val_scale_uintd (const char *opt, const char *arg, const struct arglist *adesc)
+val_scale_uintd (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	if (!argscale_uintd (arg, adesc->var))
 		shorthelp ("bad option: %s %s\n", opt, arg);
@@ -582,14 +571,14 @@ val_scale_uintd (const char *opt, const char *arg, const struct arglist *adesc)
  * so level_idu() can't return NULL.
  */
 void
-pval_scale_uint (const char *opt, const char *arg, const struct arglist *adesc)
+pval_scale_uint (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
 	unsigned int argui;
 	int level;
 	int idu;
 
-	(void) level_idu (opt, &level, &idu);
+	(void) level_idu (g, opt, &level, &idu);
 	if (!argscale_uint (arg, &argui))
 		shorthelp ("bad option: %s %s\n", opt, arg);
 	(*var)[idu][level] = argui;
@@ -601,7 +590,7 @@ pval_scale_uint (const char *opt, const char *arg, const struct arglist *adesc)
  * with optional scaling (k,m,g, etc).
  */
 void
-val_scale_pow2 (const char *opt, const char *arg, const struct arglist *adesc)
+val_scale_pow2 (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	unsigned int *ui = adesc->var;
 
@@ -619,14 +608,14 @@ val_scale_pow2 (const char *opt, const char *arg, const struct arglist *adesc)
  * so level_idu() can't return NULL.
  */
 void
-pval_scale_pow2 (const char *opt, const char *arg, const struct arglist *adesc)
+pval_scale_pow2 (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
 	unsigned int argui;
 	int level;
 	int idu;
 
-	(void) level_idu (opt, &level, &idu);
+	(void) level_idu (g, opt, &level, &idu);
 	if (!argscale_uint (arg, &argui))
 		shorthelp ("bad option: %s %s\n", opt, arg);
 	if (argui == 0 || (argui & (argui-1)) != 0)
@@ -639,7 +628,7 @@ pval_scale_pow2 (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle an option with a single character as arg
  */
 void
-val_char (const char *opt, const char *arg, const struct arglist *adesc)
+val_char (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	int *var = adesc->var;
 
@@ -653,13 +642,13 @@ val_char (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle an option with level/idu prefix and a single character as arg
  */
 void
-pval_char (const char *opt, const char *arg, const struct arglist *adesc)
+pval_char (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	int (*var)[3][MAX_LEV] = adesc->var;
 	int level;
 	int idu;
 
-	(void) level_idu (opt, &level, &idu);
+	(void) level_idu (g, opt, &level, &idu);
 	if (strlen (arg) != 1)
 		shorthelp ("bad option: %s %s\n", opt, arg);
 	(*var)[idu][level] = *arg;
@@ -670,7 +659,7 @@ pval_char (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle an option with a string as arg
  */
 void
-val_string (const char *opt, const char *arg, const struct arglist *adesc)
+val_string (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	*(const char **)adesc->var = arg;
 }
@@ -680,7 +669,7 @@ val_string (const char *opt, const char *arg, const struct arglist *adesc)
  * Handle an option with a hexadecimal address as arg.
  */
 void
-val_addr (const char *opt, const char *arg, const struct arglist *adesc)
+val_addr (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 {
 	long *var = adesc->var;
 	long argl;
@@ -700,7 +689,7 @@ val_addr (const char *opt, const char *arg, const struct arglist *adesc)
  * custom program itself.
  */
 void
-custom_custom (const struct arglist *adesc, FILE *hfile)
+custom_custom (G *g, const struct arglist *adesc, FILE *hfile)
 {
 }
 
@@ -711,7 +700,7 @@ custom_custom (const struct arglist *adesc, FILE *hfile)
  * when the values in question are boolean.
  */
 void
-pcustom_0arg (const struct arglist *adesc, FILE *hfile)
+pcustom_0arg (G *g, const struct arglist *adesc, FILE *hfile)
 {
 	int i, j;
 	int (*var)[3][MAX_LEV] = adesc->var;
@@ -720,9 +709,9 @@ pcustom_0arg (const struct arglist *adesc, FILE *hfile)
 		 adesc->customstring);
 	for (i = 0;  i < 3;  i++) {
 		fprintf (hfile, " { ");
-		for (j = 0;  j < maxlevel;  j++)
+		for (j = 0;  j < g->maxlevel;  j++)
 			fprintf (hfile, "%d%s ", (*var)[i][j],
-				 j<maxlevel-1 ? "," : "");
+				 j<g->maxlevel-1 ? "," : "");
 		fprintf (hfile, "}%s\n", i<2 ? "," : "");
 	}
 	fprintf (hfile, "};\n");
@@ -735,7 +724,7 @@ pcustom_0arg (const struct arglist *adesc, FILE *hfile)
  * when the values in question are unsigned ints.
  */
 void
-pcustom_uint (const struct arglist *adesc, FILE *hfile)
+pcustom_uint (G *g, const struct arglist *adesc, FILE *hfile)
 {
 	int i, j;
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
@@ -744,9 +733,9 @@ pcustom_uint (const struct arglist *adesc, FILE *hfile)
 		 adesc->customstring);
 	for (i = 0;  i < 3;  i++) {
 		fprintf (hfile, " { ");
-		for (j = 0;  j < maxlevel;  j++)
+		for (j = 0;  j < g->maxlevel;  j++)
 			fprintf (hfile, "%u%s ", (*var)[i][j],
-				 j<maxlevel-1 ? "," : "");
+				 j<g->maxlevel-1 ? "," : "");
 		fprintf (hfile, "}%s\n", i<2 ? "," : "");
 	}
 	fprintf (hfile, "};\n");
@@ -759,7 +748,7 @@ pcustom_uint (const struct arglist *adesc, FILE *hfile)
  * when the values in question are chars.
  */
 void
-pcustom_char (const struct arglist *adesc, FILE *hfile)
+pcustom_char (G *g, const struct arglist *adesc, FILE *hfile)
 {
 	int i, j;
 	int (*var)[3][MAX_LEV] = adesc->var;
@@ -768,9 +757,9 @@ pcustom_char (const struct arglist *adesc, FILE *hfile)
 		 adesc->customstring);
 	for (i = 0;  i < 3;  i++) {
 		fprintf (hfile, " { ");
-		for (j = 0;  j < maxlevel;  j++)
+		for (j = 0;  j < g->maxlevel;  j++)
 			fprintf (hfile, "%d%s ", (*var)[i][j],
-				 j<maxlevel-1 ? "," : "");
+				 j<g->maxlevel-1 ? "," : "");
 		fprintf (hfile, "}%s\n", i<2 ? "," : "");
 	}
 	fprintf (hfile, "};\n");
@@ -793,13 +782,13 @@ summary_0arg (const struct arglist *adesc, FILE *f)
  * Produce a summary line for parameters with level/idu prefix but no arg.
  */
 void
-psummary_0arg (const struct arglist *adesc, FILE *f)
+psummary_0arg (G *g, const struct arglist *adesc, FILE *f)
 {
 	int idu, lev;
 	int (*var)[3][MAX_LEV] = adesc->var;
 
 	for (idu = 0;  idu < 3;  idu++) {
-		for (lev = 0;  lev <= maxlevel;  lev++) {
+		for (lev = 0;  lev <= g->maxlevel;  lev++) {
 			if ((*var)[idu][lev] != 0)
 				fprintf (f, "-l%d-%c%s\n", lev+1,
 					 idu==0?'u':(idu==1?'i':'d'),
@@ -813,7 +802,7 @@ psummary_0arg (const struct arglist *adesc, FILE *f)
  * Produce a summary line for parameters with typical unsigned integer value.
  */
 void
-summary_uint (const struct arglist *adesc, FILE *f)
+summary_uint (G *g, const struct arglist *adesc, FILE *f)
 {
 	fprintf (f, "%s %u\n", adesc->optstring, *(unsigned int *)adesc->var);
 }
@@ -824,7 +813,7 @@ summary_uint (const struct arglist *adesc, FILE *f)
  * handled as a double for extended range.
  */
 void
-summary_uintd (const struct arglist *adesc, FILE *f)
+summary_uintd (G *g, const struct arglist *adesc, FILE *f)
 {
 	fprintf (f, "%s %.0f\n", adesc->optstring, *(double *)adesc->var);
 }
@@ -835,13 +824,13 @@ summary_uintd (const struct arglist *adesc, FILE *f)
  * unsigned integer value.
  */
 void
-psummary_uint (const struct arglist *adesc, FILE *f)
+psummary_uint (G *g, const struct arglist *adesc, FILE *f)
 {
 	int idu, lev;
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
 
 	for (idu = 0;  idu < 3;  idu++) {
-		for (lev = 0;  lev <= maxlevel;  lev++) {
+		for (lev = 0;  lev <= g->maxlevel;  lev++) {
 			if ((*var)[idu][lev] != 0) {
 				fprintf (f, "-l%d-%c%s %u\n", lev+1,
 					 idu==0?'u':(idu==1?'i':'d'),
@@ -857,13 +846,13 @@ psummary_uint (const struct arglist *adesc, FILE *f)
  * unsigned power-of-2 integer value, remembered as its log.
  */
 void
-psummary_luint (const struct arglist *adesc, FILE *f)
+psummary_luint (G *g, const struct arglist *adesc, FILE *f)
 {
 	int idu, lev;
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
 
 	for (idu = 0;  idu < 3;  idu++) {
-		for (lev = 0;  lev <= maxlevel;  lev++) {
+		for (lev = 0;  lev <= g->maxlevel;  lev++) {
 			if ((*var)[idu][lev] != 0) {
 				fprintf (f, "-l%d-%c%s %u\n", lev+1,
 					 idu==0?'u':(idu==1?'i':'d'),
@@ -879,7 +868,7 @@ psummary_luint (const struct arglist *adesc, FILE *f)
  * Produce a summary line for parameters with typical single char argument.
  */
 void
-summary_char (const struct arglist *adesc, FILE *f)
+summary_char (G *g, const struct arglist *adesc, FILE *f)
 {
 	fprintf (f, "%s %c\n", adesc->optstring, *(int *)adesc->var);
 }
@@ -890,13 +879,13 @@ summary_char (const struct arglist *adesc, FILE *f)
  * single char value.
  */
 void
-psummary_char (const struct arglist *adesc, FILE *f)
+psummary_char (G *g, const struct arglist *adesc, FILE *f)
 {
 	int idu, lev;
 	int (*var)[3][MAX_LEV] = adesc->var;
 
 	for (idu = 0;  idu < 3;  idu++) {
-		for (lev = 0;  lev <= maxlevel;  lev++) {
+		for (lev = 0;  lev <= g->maxlevel;  lev++) {
 			if ((*var)[idu][lev] != 0) {
 				fprintf (f, "-l%d-%c%s %c\n", lev+1,
 					 idu==0?'u':(idu==1?'i':'d'),
@@ -913,7 +902,7 @@ psummary_char (const struct arglist *adesc, FILE *f)
  * as argument.
  */
 void
-summary_addr (const struct arglist *adesc, FILE *f)
+summary_addr (G *g, const struct arglist *adesc, FILE *f)
 {
 	fprintf (f, "%s 0x%lx\n", adesc->optstring, *(long *)adesc->var);
 }
@@ -923,9 +912,9 @@ summary_addr (const struct arglist *adesc, FILE *f)
  * Produce a help line for a possible command line option taking no args.
  */
 void
-help_0arg (const struct arglist *adesc)
+help_0arg (G *g, const struct arglist *adesc)
 {
-	printf ("%-*s %s", optstringmax, adesc->optstring, adesc->helpstring);
+	printf ("%-*s %s", g->optstringmax, adesc->optstring, adesc->helpstring);
 }
 
 
@@ -935,9 +924,9 @@ help_0arg (const struct arglist *adesc)
  * We don't bother trying to show the default values; there are too many.
  */
 void
-phelp_0arg (const struct arglist *adesc)
+phelp_0arg (G *g, const struct arglist *adesc)
 {
-        printf ("-lN-T%-*s %s", optstringmax-adesc->pad, adesc->optstring, adesc->helpstring);
+        printf ("-lN-T%-*s %s", g->optstringmax-adesc->pad, adesc->optstring, adesc->helpstring);
 }
 
 
@@ -946,10 +935,10 @@ phelp_0arg (const struct arglist *adesc)
  * an unsigned int value.
  */
 void
-help_uint (const struct arglist *adesc)
+help_uint (G *g, const struct arglist *adesc)
 {
 	printf ("%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
 		adesc->helpstring);
 }
 
@@ -959,10 +948,10 @@ help_uint (const struct arglist *adesc)
  * a scaled unsigned int value, but using double for extra range.
  */
 void
-help_scale_uintd (const struct arglist *adesc)
+help_scale_uintd (G *g, const struct arglist *adesc)
 {
 	printf ("%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
 		adesc->helpstring);
 }
 
@@ -973,10 +962,10 @@ help_scale_uintd (const struct arglist *adesc)
  * We don't bother trying to show the default values; there are too many.
  */
 void
-phelp_uint (const struct arglist *adesc)
+phelp_uint (G *g, const struct arglist *adesc)
 {
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
 		adesc->helpstring);
 }
 
@@ -987,10 +976,10 @@ phelp_uint (const struct arglist *adesc)
  * We don't bother trying to show the default values; there are too many.
  */
 void
-phelp_scale_uint (const struct arglist *adesc)
+phelp_scale_uint (G *g, const struct arglist *adesc)
 {
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "S",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "S",
 		adesc->helpstring);
 }
 
@@ -1001,10 +990,10 @@ phelp_scale_uint (const struct arglist *adesc)
  * We don't bother trying to show the default values; there are too many.
  */
 void
-phelp_scale_pow2 (const struct arglist *adesc)
+phelp_scale_pow2 (G *g, const struct arglist *adesc)
 {
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "P",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "P",
 		adesc->helpstring);
 }
 
@@ -1014,10 +1003,10 @@ phelp_scale_pow2 (const struct arglist *adesc)
  * a single char value.
  */
 void
-help_char (const struct arglist *adesc)
+help_char (G *g, const struct arglist *adesc)
 {
 	printf ("%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "C",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "C",
 		adesc->helpstring);
 }
 
@@ -1028,10 +1017,10 @@ help_char (const struct arglist *adesc)
  * We don't bother trying to show the default values; there are too many.
  */
 void
-phelp_char (const struct arglist *adesc)
+phelp_char (G *g, const struct arglist *adesc)
 {
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "C",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "C",
 		adesc->helpstring);
 }
 
@@ -1040,10 +1029,10 @@ phelp_char (const struct arglist *adesc)
  * Produce a help line for a possible command line option taking a string.
  */
 void
-help_string (const struct arglist *adesc)
+help_string (G *g, const struct arglist *adesc)
 {
 	printf ("%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "F",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "F",
 		adesc->helpstring);
 	if (*(char **)adesc->var != NULL)
 		printf (" (\"%s\")", *(char **)adesc->var);
@@ -1055,10 +1044,10 @@ help_string (const struct arglist *adesc)
  * a hexidecimal address value.
  */
 void
-help_addr (const struct arglist *adesc)
+help_addr (G *g, const struct arglist *adesc)
 {
 	printf ("%s %-*s %s", adesc->optstring,
-		optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "A",
+		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "A",
 		adesc->helpstring);
 	if (*(long *)adesc->var != 0)
 		printf (" (0x%lx)", *(long *)adesc->var);
@@ -1069,14 +1058,14 @@ help_addr (const struct arglist *adesc)
  * Print info about how the caches are set up
  */
 void
-summarize_caches (d4cache *ci, d4cache *cd)
+summarize_caches (G *g, d4cache *ci, d4cache *cd)
 {
 	struct arglist *adesc;
 
 	printf ("\n---Summary of options "
 		"(-help option gives usage information).\n\n");
 
-	for (adesc = args;  adesc->optstring != NULL;  adesc++)
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++)
 		if (adesc->sumf != (void (*)())NULL)
 			adesc->sumf (adesc, stdout);
 }
@@ -1086,56 +1075,55 @@ summarize_caches (d4cache *ci, d4cache *cd)
  * Print out the stuff the user really wants
  */
 void
-dostats()
+dostats(G *g)
 {
 	int lev;
 	int i;
-
-	for (lev = 0;  lev < maxlevel;  lev++) {
-		if (stat_idcombine && levcache[0][lev] == NULL) {
+	for (lev = 0;  lev < g->maxlevel;  lev++) {
+		if (g->stat_idcombine && g->levcache[0][lev] == NULL) {
 			d4cache cc;	/* a bogus cache structure */
 			char ccname[30];
 
 			cc.name = ccname;
 			sprintf (cc.name, "l%d-I/Dcaches", lev+1);
 			cc.prefetchf = NULL;
-			if (levcache[1][lev]->prefetchf==d4prefetch_none && levcache[2][lev]->prefetchf==d4prefetch_none)
+			if (g->levcache[1][lev]->prefetchf==d4prefetch_none && g->levcache[2][lev]->prefetchf==d4prefetch_none)
 				cc.prefetchf = d4prefetch_none; /* controls prefetch printout stats */
 
 			/* add the i & d stats into the new bogus structure */
 			for (i = 0;  i < 2 * D4NUMACCESSTYPES;  i++) {
-				cc.fetch[i]          = levcache[1][lev]->fetch[i]          + levcache[2][lev]->fetch[i];
-				cc.miss[i]           = levcache[1][lev]->miss[i]           + levcache[2][lev]->miss[i];
-				cc.blockmiss[i]      = levcache[1][lev]->blockmiss[i]      + levcache[2][lev]->blockmiss[i];
-				cc.comp_miss[i]      = levcache[1][lev]->comp_miss[i]      + levcache[2][lev]->comp_miss[i];
-				cc.comp_blockmiss[i] = levcache[1][lev]->comp_blockmiss[i] + levcache[2][lev]->comp_blockmiss[i];
-				cc.cap_miss[i]       = levcache[1][lev]->cap_miss[i]       + levcache[2][lev]->cap_miss[i];
-				cc.cap_blockmiss[i]  = levcache[1][lev]->cap_blockmiss[i]  + levcache[2][lev]->cap_blockmiss[i];
-				cc.conf_miss[i]      = levcache[1][lev]->conf_miss[i]      + levcache[2][lev]->conf_miss[i];
-				cc.conf_blockmiss[i] = levcache[1][lev]->conf_blockmiss[i] + levcache[2][lev]->conf_blockmiss[i];
+				cc.fetch[i]          = g->levcache[1][lev]->fetch[i]          + g->levcache[2][lev]->fetch[i];
+				cc.miss[i]           = g->levcache[1][lev]->miss[i]           + g->levcache[2][lev]->miss[i];
+				cc.blockmiss[i]      = g->levcache[1][lev]->blockmiss[i]      + g->levcache[2][lev]->blockmiss[i];
+				cc.comp_miss[i]      = g->levcache[1][lev]->comp_miss[i]      + g->levcache[2][lev]->comp_miss[i];
+				cc.comp_blockmiss[i] = g->levcache[1][lev]->comp_blockmiss[i] + g->levcache[2][lev]->comp_blockmiss[i];
+				cc.cap_miss[i]       = g->levcache[1][lev]->cap_miss[i]       + g->levcache[2][lev]->cap_miss[i];
+				cc.cap_blockmiss[i]  = g->levcache[1][lev]->cap_blockmiss[i]  + g->levcache[2][lev]->cap_blockmiss[i];
+				cc.conf_miss[i]      = g->levcache[1][lev]->conf_miss[i]      + g->levcache[2][lev]->conf_miss[i];
+				cc.conf_blockmiss[i] = g->levcache[1][lev]->conf_blockmiss[i] + g->levcache[2][lev]->conf_blockmiss[i];
 			}
-			cc.multiblock    = levcache[1][lev]->multiblock    + levcache[2][lev]->multiblock;
-			cc.bytes_read    = levcache[1][lev]->bytes_read    + levcache[2][lev]->bytes_read;
-			cc.bytes_written = levcache[1][lev]->bytes_written + levcache[2][lev]->bytes_written;
+			cc.multiblock    = g->levcache[1][lev]->multiblock    + g->levcache[2][lev]->multiblock;
+			cc.bytes_read    = g->levcache[1][lev]->bytes_read    + g->levcache[2][lev]->bytes_read;
+			cc.bytes_written = g->levcache[1][lev]->bytes_written + g->levcache[2][lev]->bytes_written;
 
-			cc.flags = levcache[1][lev]->flags | levcache[2][lev]->flags; /* get D4F_CCC */
+			cc.flags = g->levcache[1][lev]->flags | g->levcache[2][lev]->flags; /* get D4F_CCC */
 
 			/*
 			 * block and subblock size should match;
 			 * should be checked at startup time
 			 */
-			cc.lg2subblocksize = levcache[1][lev]->lg2subblocksize;
-			cc.lg2blocksize = levcache[1][lev]->lg2blocksize;
+			cc.lg2subblocksize = g->levcache[1][lev]->lg2subblocksize;
+			cc.lg2blocksize = g->levcache[1][lev]->lg2blocksize;
 
 			do1stats (&cc);
 		}
 		else {
-			if (levcache[0][lev] != NULL)
-				do1stats (levcache[0][lev]);
-			if (levcache[1][lev] != NULL)
-				do1stats (levcache[1][lev]);
-			if (levcache[2][lev] != NULL)
-				do1stats (levcache[2][lev]);
+			if (g->levcache[0][lev] != NULL)
+				do1stats (g->levcache[0][lev]);
+			if (g->levcache[1][lev] != NULL)
+				do1stats (g->levcache[1][lev]);
+			if (g->levcache[2][lev] != NULL)
+				do1stats (g->levcache[2][lev]);
 		}
 	}
 }
@@ -1698,7 +1686,7 @@ do1stats (d4cache *c)
  * Called to produce each address trace record
  */
 d4memref
-next_trace_item()
+next_trace_item(G *g)
 {
 	d4memref r;
 	static int once = 1;
@@ -1707,15 +1695,15 @@ next_trace_item()
 
 	if (once) {
 		once = 0;
-		if (on_trigger != 0)
+		if (g->on_trigger != 0)
 			discard = 1;	/* initially discard until trigger address seen */
-		if (skipcount > 0) {
-			double tskipcount = skipcount;
+		if (g->skipcount > 0) {
+			double tskipcount = g->skipcount;
 			do {
 				r = input_function();
 				if (r.accesstype == D4TRACE_END) {
 					fprintf (stderr, "%s warning: input ended "
-						 "before -skipcount satisfied\n", progname);
+						 "before -skipcount satisfied\n", g->progname);
 					return r;
 				}
 			} while ((tskipcount -= 1) > 0);
@@ -1724,16 +1712,16 @@ next_trace_item()
 	while (1) {
 		r = input_function();
 		if (r.accesstype == D4TRACE_END) {
-			if ((on_trigger != 0 || off_trigger != 0) && !hastoggled)
+			if ((g->on_trigger != 0 || g->off_trigger != 0) && !hastoggled)
 				fprintf (stderr, "%s warning: trace discard "
-					 "trigger addresses were not matched\n", progname);
-			else if (discard == 0 && off_trigger != 0)
-				fprintf (stderr, "%s warning: tail end of trace not discarded\n", progname);
+					 "trigger addresses were not matched\n", g->progname);
+			else if (discard == 0 && g->off_trigger != 0)
+				fprintf (stderr, "%s warning: tail end of trace not discarded\n", g->progname);
 			return r;
 		}
 		if (r.address != 0) {	/* valid triggers must be != 0 */
-			if ((discard != 0 && on_trigger == r.address) ||
-			    (discard == 0 && off_trigger == r.address)) {
+			if ((discard != 0 && g->on_trigger == r.address) ||
+			    (discard == 0 && g->off_trigger == r.address)) {
 				discard ^= 1;	/* toggle */
 				hastoggled = 1;
 				continue;	/* discard the trigger itself */
@@ -1750,7 +1738,7 @@ next_trace_item()
  * Die with an error message if there are serious problems.
  */
 void
-initialize_caches (d4cache **icachep, d4cache **dcachep)
+initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 {
 	static char memname[] = "memory";
 	int i, lev, idu;
@@ -1758,30 +1746,30 @@ initialize_caches (d4cache **icachep, d4cache **dcachep)
 		*ci,
 		*cd;
 
-	mem = cd = ci = d4new(NULL);
+	g->mem = cd = ci = d4new(NULL);
 	if (ci == NULL)
-		die ("cannot create simulated memory\n");
+		die (g, "cannot create simulated memory\n");
 	ci->name = memname;
 
-	for (lev = maxlevel-1;  lev >= 0;  lev--) {
+	for (lev = g->maxlevel-1;  lev >= 0;  lev--) {
 		for (idu = 0;  idu < 3;  idu++) {
-			if (level_size[idu][lev] != 0) {
+			if (g->level_size[idu][lev] != 0) {
 				switch (idu) {
 				case 0:	cd = ci = c = d4new (ci); break;	/* u */
 				case 1:	     ci = c = d4new (ci); break;	/* i */
 				case 2:	     cd = c = d4new (cd); break;	/* d */
 				}
 				if (c == NULL)
-					die ("cannot create level %d %ccache\n",
+					die (g, "cannot create level %d %ccache\n",
 					     lev+1, idu==0?'u':(idu==1?'i':'d'));
-				init_1cache (c, lev, idu);
-				levcache[idu][lev] = c;
+				init_1cache (g, c, lev, idu);
+				g->levcache[idu][lev] = c;
 			}
 		}
 	}
 	i = d4setup();
 	if (i != 0)
-		die ("cannot complete cache initializations; d4setup = %d\n", i);
+		die (g, "cannot complete cache initializations; d4setup = %d\n", i);
 	*icachep = ci;
 	*dcachep = cd;
 }
@@ -1800,7 +1788,7 @@ initialize_caches (d4cache **icachep, d4cache **dcachep)
  * and finally exec the new program.
  */
 void
-customize_caches()
+customize_caches(G *g)
 {
 	FILE *f = NULL;
 	char fname[100];
@@ -1812,20 +1800,20 @@ customize_caches()
 	int x;
 
 	if (cmdline == NULL)
-		die ("no memory for custom make command line\n");
+		die (g, "no memory for custom make command line\n");
 	sprintf (fname, "/tmp/d4custom%d.c", pid);
 	f = fopen (fname, "w");
 	if (f == NULL)
-		die ("can't create file %s for writing (%s)\n", fname, strerror(errno));
+		die (g, "can't create file %s for writing (%s)\n", fname, strerror(errno));
 	d4customize(f);
 
 	/* call all customf functions */
 	fprintf (f, "\n#include \"cmdargs.h\"\n");
-	for (adesc = args;  adesc->optstring != NULL;  adesc++) {
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
 		if (adesc->customf != NULL)
 			adesc->customf (adesc, f);
 	}
-	fprintf (f, "int maxlevel = %d;\n", maxlevel);
+	fprintf (f, "int maxlevel = %d;\n", g->maxlevel);
 
 	fclose (f);
 
@@ -1837,7 +1825,7 @@ customize_caches()
 	if (plib == NULL || *plib == 0) {
 		plib = malloc (strlen(psrc)+strlen("/libd4.a")+1);
 		if (plib == NULL)
-			die ("no memory for libd4.a pathname\n");
+			die (g, "no memory for libd4.a pathname\n");
 		strcpy (plib, psrc);
 		strcat (plib, "/libd4.a");
 	}
@@ -1845,32 +1833,32 @@ customize_caches()
 	/* try to catch common errors */
 	sprintf (cmdline, "%s/Makefile", psrc);
 	if (stat (cmdline, &st) < 0)
-		die ("There is no %s%s\n", cmdline,
+		die (g, "There is no %s%s\n", cmdline,
 		     getenv("D4_SRC")==NULL ? "; try setting D4_SRC" : "");
 	sprintf (cmdline, "%s/d4.h", psrc);
 	if (stat (cmdline, &st) < 0)
-		die ("There is no %s%s\n", cmdline,
+		die (g, "There is no %s%s\n", cmdline,
 		     getenv("D4_SRC")==NULL ? "; try setting D4_SRC" : "");
 	if (stat (plib, &st) < 0)
-		die ("There is no %s%s\n", plib,
+		die (g, "There is no %s%s\n", plib,
 		     getenv("D4_LIB")==NULL ? "; try setting D4_LIB" : "");
 
 	sprintf (cmdline, "make -s -f %s/Makefile %s CUSTOM_NAME=%s "
 		 "CUSTOM_C=%s D4_SRC=%s D4_LIB=%s\n",
-		 psrc, customname, customname, fname, psrc, plib);
+		 psrc, g->customname, g->customname, fname, psrc, plib);
 	x = system (cmdline);
 
 #if 1	/* remove custom source file */
 	(void)unlink(fname);
 #endif
 	if (x != 0)
-		die ("can't make %s: %s returned %d\n", customname, cmdline, x);
+		die (g, "can't make %s: %s returned %d\n", g->customname, cmdline, x);
 
-	/* exec customname using cust_argc, cust_argv */
-	cust_argv[0] = customname;
-	cust_argv[cust_argc++] = NULL;
-	x = execv (customname, (char**)cust_argv); /* cast avoids warnings */
-	die ("cannot exec custom version %s: %s\n", customname, strerror(x));
+	/* exec g->customname using cust_argc, cust_argv */
+	g->cust_argv[0] = g->customname;
+	g->cust_argv[g->cust_argc++] = NULL;
+	x = execv (g->customname, (char**)(g->cust_argv)); /* cast avoids warnings */
+	die (g, "cannot exec custom version %s: %s\n", g->customname, strerror(x));
 }
 #endif	/* !D4CUSTOM */
 
@@ -1879,11 +1867,11 @@ customize_caches()
  * Complain and terminate
  */
 void
-die (const char *fmt, ...)
+die (G *g, const char *fmt, ...)
 {
 	va_list ap;
 	fflush (stdout);
-	fprintf (stderr, "%s: ", progname);
+	fprintf (stderr, "%s: ", g->progname);
 	va_start (ap, fmt);
 	vfprintf (stderr, fmt, ap);
 	va_end (ap);
@@ -1895,16 +1883,16 @@ die (const char *fmt, ...)
  * Produce short help message for improper usage, then terminate
  */
 void
-shorthelp (const char *fmt, ...)
+shorthelp (G *g, const char *fmt, ...)
 {
 	va_list ap;
 	fflush (stdout);
-	fprintf (stderr, "%s: ", progname);
+	fprintf (stderr, "%s: ", g->progname);
 	va_start (ap, fmt);
 	vfprintf (stderr, fmt, ap);
 	va_end (ap);
 	fprintf (stderr, "Consult Dinero IV documentation\n"
-		 "or run \"%s -help\" for usage information.\n", progname);
+		 "or run \"%s -help\" for usage information.\n", g->progname);
 	exit (1);
 }
 
@@ -1923,17 +1911,18 @@ clog2 (unsigned int x)
 	return i;
 }
 
-int do_cache_ref(d4memref r, 
+int do_cache_ref(G *g, 
+		 d4memref r, 
 		 d4cache *ci, d4cache *cd, 
 		 double *tmaxcount, double *flcount, 
 		 double tintcount)
 {
 	int miss_cnt = 0;
-		r = next_trace_item();
+		r = next_trace_item(g);
 		if (r.accesstype == D4TRACE_END)
 			goto done;
 
-		if (maxcount != 0 && *tmaxcount >= maxcount) {
+		if (g->maxcount != 0 && *tmaxcount >= g->maxcount) {
 			printf ("---Maximum address count exceeded.\n");
 			return -1;
 		}
@@ -1944,8 +1933,8 @@ int do_cache_ref(d4memref r,
 		}
 		*tmaxcount += 1;
 		if (tintcount > 0 && (tintcount -= 1) <= 0) {
-			dostats();
-			tintcount = stat_interval;
+			dostats(g);
+			tintcount = g->stat_interval;
 		}
 		if (*flcount > 0 && (*flcount -= 1) <= 0) {
 			/* flush cache = copy back and invalidate */
@@ -1958,7 +1947,7 @@ int do_cache_ref(d4memref r,
 			if (ci != cd) {
 				miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
 			}
-			*flcount = flushcount;
+			*flcount = g->flushcount;
 		}
 		return miss_cnt;
  done:
@@ -1973,32 +1962,37 @@ int
 main (int argc, char **argv)
 {
 	d4memref r;
-	d4cache *ci, *cd;
+	G *g = (G*)malloc(sizeof(G));	
 	double tmaxcount = 0, tintcount;
 	double flcount;
+	g->progname = "dineroIV";
+	g->cust_argc = 1;
+	g->informat = DEFVAL_informat;
+
+	init_args(g, g->args);
 
 	if (argc > 0) {
 		char *cp;
-		progname = argv[0];
-		while ((cp = strrchr (progname, '/')) != NULL) {
+		g->progname = argv[0];
+		while ((cp = strrchr (g->progname, '/')) != NULL) {
 			if (cp[1] == 0)
 				cp[0] = 0;	/* trim trailing '/' */
 			else
-				progname = cp+1;
+				g->progname = cp+1;
 		}
 	}
 
-	doargs (argc, argv);
-	verify_options();
-	initialize_caches (&ci, &cd);
+	doargs (g, argc, argv);
+	verify_options(g);
+	initialize_caches (g, &g->ci, &g->cd);
 #if !D4CUSTOM
-	if (customname != NULL) {
-		customize_caches();
+	if (g->customname != NULL) {
+		customize_caches(g);
 		/* never returns */
 	}
 #endif
-	if (cd == NULL)
-		cd = ci;	/* for unified L1 cache */
+	if (g->cd == NULL)
+		g->cd = g->ci;	/* for unified L1 cache */
 
 	printf ("---Dinero IV cache simulator, version %s\n", D4VERSION);
 	printf ("---Written by Jan Edler and Mark D. Hill\n");
@@ -2007,15 +2001,15 @@ main (int argc, char **argv)
 	printf ("---Copyright (C) 1985, 1989 Mark D. Hill.  All rights reserved.\n");
 	printf ("---See -copyright option for details\n");
 
-	summarize_caches (ci, cd);
+	summarize_caches (g, g->ci, g->cd);
 
 	int miss_cnt = 0;
 
 	printf ("\n---Simulation begins.\n");
-	tintcount = stat_interval;
-	flcount = flushcount;
+	tintcount = g->stat_interval;
+	flcount = g->flushcount;
 	while (1) {
-		miss_cnt = do_cache_ref(r, ci, cd, &tmaxcount, &flcount, tintcount), &tmaxcount;
+		miss_cnt = do_cache_ref(g, r, g->ci, g->cd, &tmaxcount, &flcount, tintcount), &tmaxcount;
 		if (miss_cnt == -1) goto done;
 	}
 done:
@@ -2023,9 +2017,9 @@ done:
 	r.accesstype = D4XCOPYB;
 	r.address = 0;
 	r.size = 0;
-	miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+	miss_cnt = d4ref (g->cd, r); printf("miss %d\n", miss_cnt);
 	printf ("---Simulation complete.\n");
-	dostats();
+	dostats(g);
 	printf ("---Execution complete.\n");
 	return 0;
 }

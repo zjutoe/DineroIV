@@ -49,13 +49,14 @@
  * handling or trace format; those are in separate places.
  */
 
+#include "global.h"
 
 #if __GNUC__    /* assume gcc 2.5 or better */
-extern void die (const char *fmt, ...) __attribute__((noreturn));
-extern void shorthelp (const char *fmt, ...) __attribute__((noreturn));
+extern void die (G *g, const char *fmt, ...) __attribute__((noreturn));
+extern void shorthelp (G *g, const char *fmt, ...) __attribute__((noreturn));
 #else
-extern void die (const char *fmt, ...);
-extern void shorthelp (const char *fmt, ...);
+extern void die (G *g, const char *fmt, ...);
+extern void shorthelp (G *g, const char *fmt, ...);
 #endif
 extern int clog2 (unsigned int);
 
