@@ -29,8 +29,6 @@ int
 main (int argc, char **argv)
 {
 	d4memref r;
-	// double tmaxcount = 0, tintcount;
-	// double flcount;
 
 	int core = do_cache_init();
 	if (core < 0) {
@@ -51,8 +49,9 @@ main (int argc, char **argv)
 	int miss_cnt = 0;
 
 	printf ("\n---Simulation begins.\n");
-	// tintcount = g->stat_interval;
-	// flcount = g->flushcount;
+	g->tmaxcount = 0;
+	g->tintcount = g->stat_interval;
+	g->flcount = g->flushcount;
 	while (1) {
 		r = next_trace_item(g);
 		miss_cnt = do_cache_ref(core, r);
