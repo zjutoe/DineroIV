@@ -136,6 +136,7 @@ extern void unspec (G *g, int, int, char *, void *, char *);
 #define CUST_X(x)	x
 #endif
 
+#if 0
 void set_arg(struct arglist *arg, 
 	     char *optstring, 
 	     int pad,
@@ -342,30 +343,34 @@ void init_args(G *g, struct arglist args[])
 	//g->nargs = sizeof(args) / sizeof(args[0]);
 }
 
-// FIXME: should remove these
-int optstringmax;	/* longest option string */
-char *customname;	/* for -custom, name of executable */
-double skipcount;	/* for -skipcount */
-double flushcount;	/* for -flushcount */
-double maxcount;		/* for -maxcount */
-double stat_interval;	/* for -stat-interval */
-long on_trigger;		/* for -on-trigger */
-long off_trigger;	/* for -off-trigger */
-int stat_idcombine;	/* for -stat-idcombine */
+#endif	//0
 
-//D4_EXT int maxlevel;	/* the highest level actually used */
-D4_EXT unsigned int level_blocksize[3][MAX_LEV];
-D4_EXT unsigned int level_subblocksize[3][MAX_LEV];
-D4_EXT unsigned int level_size[3][MAX_LEV];
-D4_EXT unsigned int level_assoc[3][MAX_LEV];
-D4_EXT int level_doccc[3][MAX_LEV];
-D4_EXT int level_replacement[3][MAX_LEV];
-D4_EXT int level_fetch[3][MAX_LEV];
-D4_EXT int level_walloc[3][MAX_LEV];
-D4_EXT int level_wback[3][MAX_LEV];
-D4_EXT int level_prefetch_abortpercent[3][MAX_LEV];
-int level_prefetch_distance[3][MAX_LEV];
-int informat = DEFVAL_informat;
+// // FIXME: should remove these
+// int optstringmax;	/* longest option string */
+// char *customname;	/* for -custom, name of executable */
+// double skipcount;	/* for -skipcount */
+// double flushcount;	/* for -flushcount */
+// double maxcount;		/* for -maxcount */
+// double stat_interval;	/* for -stat-interval */
+// long on_trigger;		/* for -on-trigger */
+// long off_trigger;	/* for -off-trigger */
+// int stat_idcombine;	/* for -stat-idcombine */
+
+// //D4_EXT int maxlevel;	/* the highest level actually used */
+// D4_EXT unsigned int level_blocksize[3][MAX_LEV];
+// D4_EXT unsigned int level_subblocksize[3][MAX_LEV];
+// D4_EXT unsigned int level_size[3][MAX_LEV];
+// D4_EXT unsigned int level_assoc[3][MAX_LEV];
+// D4_EXT int level_doccc[3][MAX_LEV];
+// D4_EXT int level_replacement[3][MAX_LEV];
+// D4_EXT int level_fetch[3][MAX_LEV];
+// D4_EXT int level_walloc[3][MAX_LEV];
+// D4_EXT int level_wback[3][MAX_LEV];
+// D4_EXT int level_prefetch_abortpercent[3][MAX_LEV];
+// int level_prefetch_distance[3][MAX_LEV];
+// int informat = DEFVAL_informat;
+
+#if 0
 
 /* Initialize argument table to specify acceptable arguments */
 struct arglist args[] = {
@@ -390,111 +395,112 @@ struct arglist args[] = {
 	  "Explain replacements for Dinero III options",
 	  match_0arg, val_helpd3, NULL,
 	  NULL, help_0arg },
-	{ "-custom", 2, &customname, NULL,
+	{ "-custom", 2, &g->customname, NULL,
 	  NULL,
 	  "Generate and run custom simulator named F",
 	  match_1arg, val_string, custom_custom,
 	  NULL, help_string },
 #endif
-	{ "size", 7, &level_size[0][0], NULL,
+	{ "size", 7, &g->level_size[0][0], NULL,
 	  "level_size",
 	  "Size",
 	  CUST_MATCH(pmatch_1arg), pval_scale_pow2, CUST_X(pcustom_uint),
 	  psummary_luint, CUST_X(phelp_scale_pow2) },
-	{ "bsize", 7, &level_blocksize[0][0], NULL,
+	{ "bsize", 7, &g->level_blocksize[0][0], NULL,
 	  "level_blocksize",
 	  "Block size",
 	  CUST_MATCH(pmatch_1arg), pval_scale_pow2, CUST_X(pcustom_uint),
 	  psummary_luint, CUST_X(phelp_scale_pow2) },
-	{ "sbsize", 7, &level_subblocksize[0][0], "same as block size",
+	{ "sbsize", 7, &g->level_subblocksize[0][0], "same as block size",
 	  "level_subblocksize",
 	  "Sub-block size",
 	  CUST_MATCH(pmatch_1arg), pval_scale_pow2, CUST_X(pcustom_uint),
 	  psummary_luint, CUST_X(phelp_scale_pow2) },
-	{ "assoc", 7, &level_assoc[0][0], DEFSTR_assoc,
+	{ "assoc", 7, &g->level_assoc[0][0], DEFSTR_assoc,
 	  "level_assoc",
 	  "Associativity",
 	  CUST_MATCH(pmatch_1arg), pval_uint, CUST_X(pcustom_uint),
 	  psummary_uint, CUST_X(phelp_uint) },
-	{ "repl", 7, &level_replacement[0][0], DEFSTR_repl,
+	{ "repl", 7, &g->level_replacement[0][0], DEFSTR_repl,
 	  "level_replacement",
 	  "Replacement policy",
 	  CUST_MATCH(pmatch_1arg), pval_char, CUST_X(pcustom_char),
 	  psummary_char, CUST_X(phelp_replacement) },
-	{ "fetch", 7, &level_fetch[0][0], DEFSTR_fetch,
+	{ "fetch", 7, &g->level_fetch[0][0], DEFSTR_fetch,
 	  "level_fetch",
 	  "Fetch policy",
 	  CUST_MATCH(pmatch_1arg), pval_char, CUST_X(pcustom_char),
 	  psummary_char, CUST_X(phelp_fetch) },
-	{ "pfdist", 7, &level_prefetch_distance[0][0], "1",
+	{ "pfdist", 7, &g->level_prefetch_distance[0][0], "1",
 	  NULL,
 	  "Prefetch distance (in sub-blocks)",
 	  pmatch_1arg, pval_uint, NULL,
 	  psummary_uint, CUST_X(phelp_uint) },
-	{ "pfabort", 7, &level_prefetch_abortpercent[0][0], "0",
+	{ "pfabort", 7, &g->level_prefetch_abortpercent[0][0], "0",
 	  "level_prefetch_abortpercent",
 	  "Prefetch abort percentage (0-100)",
 	  CUST_MATCH(pmatch_1arg), pval_uint, CUST_X(pcustom_uint),
 	  psummary_uint, CUST_X(phelp_uint) },
-	{ "walloc", 7, &level_walloc[0][0], DEFSTR_walloc,
+	{ "walloc", 7, &g->level_walloc[0][0], DEFSTR_walloc,
 	  "level_walloc",
 	  "Write allocate policy",
 	  CUST_MATCH(pmatch_1arg), pval_char, CUST_X(pcustom_char),
 	  psummary_char, CUST_X(phelp_walloc) },
-	{ "wback", 7, &level_wback[0][0], DEFSTR_wback,
+	{ "wback", 7, &g->level_wback[0][0], DEFSTR_wback,
 	  "level_wback",
 	  "Write back policy",
 	  CUST_MATCH(pmatch_1arg), pval_char, CUST_X(pcustom_char),
 	  psummary_char, CUST_X(phelp_wback) },
-	{ "ccc", 5, &level_doccc[0][0], NULL,
+	{ "ccc", 5, &g->level_doccc[0][0], NULL,
 	  "level_doccc",
 	  "Compulsory/Capacity/Conflict miss statistics",
 	  CUST_MATCH(pmatch_0arg), pval_0arg, CUST_X(pcustom_0arg),
 	  psummary_0arg, CUST_X(phelp_0arg) },
-	{ "-skipcount", 2, &skipcount, NULL,
+	{ "-skipcount", 2, &g->skipcount, NULL,
 	  NULL,
 	  "Skip initial U references",
 	  match_1arg, val_scale_uintd, NULL,
 	  summary_uintd, help_scale_uintd },
-	{ "-flushcount", 2, &flushcount, NULL,
+	{ "-flushcount", 2, &g->flushcount, NULL,
 	  NULL,
 	  "Flush cache every U references",
 	  match_1arg, val_scale_uintd, NULL,
 	  summary_uintd, help_scale_uintd },
-	{ "-maxcount", 2, &maxcount, NULL,
+	{ "-maxcount", 2, &g->maxcount, NULL,
 	  NULL,
 	  "Stop simulation after U references",
 	  match_1arg, val_scale_uintd, NULL,
 	  summary_uintd, help_scale_uintd },
-	{ "-stat-interval", 2, &stat_interval, NULL,
+	{ "-stat-interval", 2, &g->stat_interval, NULL,
 	  NULL,
 	  "Show statistics after every U references",
 	  match_1arg, val_scale_uintd, NULL,
 	  summary_uintd, help_scale_uintd },
-	{ "-informat", 2, &informat, DEFSTR_informat,
+	{ "-informat", 2, &g->informat, DEFSTR_informat,
 	  NULL,
 	  "Input trace format",
 	  match_1arg, val_char, NULL,
 	  summary_char, help_informat },
-	{ "-on-trigger", 2, &on_trigger, NULL,
+	{ "-on-trigger", 2, &g->on_trigger, NULL,
 	  NULL,
 	  "Trigger address to start simulation",
 	  match_1arg, val_addr, NULL,
 	  summary_addr, help_addr },
-	{ "-off-trigger", 2, &off_trigger, NULL,
+	{ "-off-trigger", 2, &g->off_trigger, NULL,
 	  NULL,
 	  "Trigger address to stop simulation",
 	  match_1arg, val_addr, NULL,
 	  summary_addr, help_addr },
-	{ "-stat-idcombine", 2, &stat_idcombine, NULL,
+	{ "-stat-idcombine", 2, &g->stat_idcombine, NULL,
 	  NULL,
-	  "Combine I&D cache stats",
+	  "Combine I->D cache stats",
 	  match_0arg, val_0arg, NULL,
 	  summary_0arg, help_0arg },
 	{ NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };
 int nargs = sizeof(args) / sizeof(args[0]);
 
+#endif	//0
 
 
 
@@ -572,7 +578,7 @@ unspec (G *g, int lev, int idu, char *name, void *var, char *suggest)
 	int iduchar = idu==0?'u':(idu==1?'i':'d');
 	struct arglist *argl;
 
-	for (argl = args;  argl->var != var;  argl++)
+	for (argl = g->args;  argl->var != var;  argl++)
 		if (argl->optstring == NULL)
 			die (g, "internal problem with arglist table\n");
 	

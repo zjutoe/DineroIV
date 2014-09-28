@@ -67,8 +67,8 @@
 #include "tracein.h"
 #include "global.h"
 
-extern struct arglist args[];
-extern int nargs;
+//extern struct arglist args[];
+//extern int nargs;
 
 /* private prototypes for this file */
 extern int do1arg (G *g, const char *, const char *);
@@ -97,9 +97,9 @@ do1arg (G *g, const char *opt, const char *arg)
 {
 	struct arglist *adesc;
 	printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
-	for (adesc = args;  adesc->optstring != NULL;  adesc++) {
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
 		printf("%s %d %s\n", __FUNCTION__, __LINE__, adesc->optstring);
-		int eaten = adesc->match (g, opt, adesc);
+		int eaten = adesc->match (opt, adesc);
 		if (eaten > 0) {
 			if (eaten > 1 && (arg == NULL || *arg == '-'))
 				shorthelp (g, "\"%s\" option requires additional argument\n", opt);
@@ -142,7 +142,7 @@ doargs (G *g, int argc, char **argv)
 		die (g, "no memory to copy args for possible -custom\n");
 #endif
 
-	for (adesc = args;  adesc->optstring != NULL;  adesc++)
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++)
 		if (g->optstringmax < (int)strlen(adesc->optstring) + adesc->pad)
 			g->optstringmax = strlen(adesc->optstring) + adesc->pad;
 
@@ -371,12 +371,12 @@ val_help (G *g, const char *opt, const char *arg, const struct arglist *adesc)
 	int i;
 
 	printf ("Usage: %s [options]\nValid options:\n", g->progname);
-	for (i = 0;  i < nargs;  i++) {
-		if (args[i].optstring != NULL && args[i].help != NULL) {
+	for (i = 0;  i < g->nargs;  i++) {
+		if (g->args[i].optstring != NULL && g->args[i].help != NULL) {
 			putchar (' ');
-			args[i].help (&args[i]);
-			if (args[i].defstr != NULL)
-				printf (" (default %s)", args[i].defstr);
+			g->args[i].help (&g->args[i]);
+			if (g->args[i].defstr != NULL)
+				printf (" (default %s)", g->args[i].defstr);
 			putchar ('\n');
 		}
 	}
@@ -1861,7 +1861,7 @@ customize_caches(G *g)
 
 	/* call all customf functions */
 	fprintf (f, "\n#include \"cmdargs.h\"\n");
-	for (adesc = args;  adesc->optstring != NULL;  adesc++) {
+	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
 		if (adesc->customf != NULL)
 			adesc->customf (adesc, f);
 	}

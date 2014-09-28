@@ -60,7 +60,8 @@
 // extern long off_trigger;	/* for -off-trigger */
 // extern int stat_idcombine;	/* for -stat-idcombine */
 
-extern void init_args(G *g, struct arglist args[]);
+// extern void init_args(G *g, struct arglist args[]);
+
 /*
  * Helper for match and value functions recognizing -ln-idu prefix
  */
