@@ -14,6 +14,7 @@
 #include "cmdargs.h"
 #include "tracein.h"
 #include "global.h"
+#include "cmdmain.h"
 
 /*
  * Everything starts here
@@ -22,41 +23,43 @@ int
 main (int argc, char **argv)
 {
 	d4memref r;
-	G *g = (G*)malloc(sizeof(G));	
-	if (g == NULL)
-		printf("g malloc failed\n");
 	double tmaxcount = 0, tintcount;
 	double flcount;
-	g->progname = "dineroIV";
-	g->cust_argc = 1;
-	g->informat = DEFVAL_informat;
 
-	// init_args(g, g->args);
-	// memcpy(g->args, args, nargs * sizeof(args[0]));
+	G *g = do_cache_init();
 
-	if (argc > 0) {
-		char *cp;
-		g->progname = argv[0];
-		while ((cp = strrchr (g->progname, '/')) != NULL) {
-			if (cp[1] == 0)
-				cp[0] = 0;	/* trim trailing '/' */
-			else
-				g->progname = cp+1;
-		}
-	}
+	// G *g = (G*)malloc(sizeof(G));	
+	// if (g == NULL)
+	// 	printf("g malloc failed\n");
+	// double tmaxcount = 0, tintcount;
+	// double flcount;
+	// g->progname = "dineroIV";
+	// g->cust_argc = 1;
+	// g->informat = DEFVAL_informat;
+
+	// if (argc > 0) {
+	// 	char *cp;
+	// 	g->progname = argv[0];
+	// 	while ((cp = strrchr (g->progname, '/')) != NULL) {
+	// 		if (cp[1] == 0)
+	// 			cp[0] = 0;	/* trim trailing '/' */
+	// 		else
+	// 			g->progname = cp+1;
+	// 	}
+	// }
 	//doargs (g, argc, argv);
-	doargs_simple(g, argc, argv);
-	verify_options(g);
-	initialize_caches (g, &g->ci, &g->cd);
 
-#if !D4CUSTOM
-	if (g->customname != NULL) {
-		customize_caches(g);
-		/* never returns */
-	}
-#endif
-	if (g->cd == NULL)
-		g->cd = g->ci;	/* for unified L1 cache */
+	// verify_options(g);
+	// initialize_caches (g, &g->ci, &g->cd);
+
+// #if !D4CUSTOM
+// 	if (g->customname != NULL) {
+// 		customize_caches(g);
+// 		/* never returns */
+// 	}
+// #endif
+// 	if (g->cd == NULL)
+// 		g->cd = g->ci;	/* for unified L1 cache */
 
 	printf ("---Dinero IV cache simulator, version %s\n", D4VERSION);
 	printf ("---Written by Jan Edler and Mark D. Hill\n");

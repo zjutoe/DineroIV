@@ -2006,3 +2006,32 @@ int do_cache_ref(G *g,
 		return -1;
 }
 
+G* do_cache_init()
+{
+	G *g = (G*)malloc(sizeof(G));	
+	if (g == NULL)
+		printf("g malloc failed\n");
+
+	g->progname = "dineroIV";
+	g->cust_argc = 1;
+	g->informat = DEFVAL_informat;
+	
+	doargs_simple(g);
+
+	verify_options(g);
+	initialize_caches (g, &g->ci, &g->cd);
+
+
+#if !D4CUSTOM
+	if (g->customname != NULL) {
+		customize_caches(g);
+		/* never returns */
+	}
+#endif
+	if (g->cd == NULL)
+		g->cd = g->ci;	/* for unified L1 cache */
+
+
+	return g;
+}
+

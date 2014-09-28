@@ -101,7 +101,8 @@ $(CUSTOM_NAME): $(CUSTOM_C) $(CMD_SRC_LIST) $(D4_SRC)/d4.h $(D4_SRC)/config.h
 
 ref.o: ref.c d4.h config.h
 misc.o: misc.c d4.h config.h
-cmdmain.o: cmdmain.c d4.h cmdd4.h cmdargs.h tracein.h config.h
+main.o: main.c cmdmain.h
+cmdmain.o: cmdmain.c cmdmain.h d4.h cmdd4.h cmdargs.h tracein.h config.h
 cmdargs.o: cmdargs.c d4.h cmdd4.h cmdargs.h config.h
 tracein.o: tracein.c d4.h tracein.h config.h
 xdinfmt.o: xdinfmt.c d4.h cmdd4.h tracein.h config.h

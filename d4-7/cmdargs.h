@@ -153,4 +153,4 @@ extern void verify_options (G *g);
 extern void initialize_caches (G *g, d4cache **icachep, d4cache **dcachep);
 extern void init_1cache (G *g, d4cache *, int, int);
 
-extern void doargs_simple(G *g, int argc, char **argv);
+extern void doargs_simple(G *g);

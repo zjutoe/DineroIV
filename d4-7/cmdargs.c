@@ -889,7 +889,7 @@ init_1cache (G *g, d4cache *c, int lev, int idu)
 }
 
 void
-doargs_simple(G *g, int argc, char **argv)	
+doargs_simple(G *g)	
 {
 	//	"-l1-isize 8k -l1-dsize 8k -l1-ibsize 16 -l1-dbsize 16
 	//	-l1-iassoc 2 -l1-dassoc 2 -l1-irepl l -l1-drepl l
