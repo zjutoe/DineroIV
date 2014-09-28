@@ -156,7 +156,6 @@ doargs (G *g, int argc, char **argv)
 	// verify_options();
 }
 
-
 /*
  * Get the level and idu portion of a -ln-idu prefix.
  * The return value is a pointer to the next character after the prefix,
@@ -869,6 +868,7 @@ psummary_uint (G *g, const struct arglist *adesc, FILE *f)
 void
 psummary_luint (G *g, const struct arglist *adesc, FILE *f)
 {
+#if 0
 	int idu, lev;
 	unsigned int (*var)[3][MAX_LEV] = adesc->var;
 
@@ -882,6 +882,7 @@ psummary_luint (G *g, const struct arglist *adesc, FILE *f)
 			}
 		}
 	}
+#endif	//0
 }
 
 
@@ -891,7 +892,9 @@ psummary_luint (G *g, const struct arglist *adesc, FILE *f)
 void
 summary_char (G *g, const struct arglist *adesc, FILE *f)
 {
+#if 0
 	fprintf (f, "%s %c\n", adesc->optstring, *(int *)adesc->var);
+#endif	//0
 }
 
 
@@ -902,6 +905,7 @@ summary_char (G *g, const struct arglist *adesc, FILE *f)
 void
 psummary_char (G *g, const struct arglist *adesc, FILE *f)
 {
+#if 0
 	int idu, lev;
 	int (*var)[3][MAX_LEV] = adesc->var;
 
@@ -915,6 +919,7 @@ psummary_char (G *g, const struct arglist *adesc, FILE *f)
 			}
 		}
 	}
+#endif	//0
 }
 
 
@@ -925,7 +930,9 @@ psummary_char (G *g, const struct arglist *adesc, FILE *f)
 void
 summary_addr (G *g, const struct arglist *adesc, FILE *f)
 {
+#if 0
 	fprintf (f, "%s 0x%lx\n", adesc->optstring, *(long *)adesc->var);
+#endif	//0
 }
 
 
@@ -935,7 +942,9 @@ summary_addr (G *g, const struct arglist *adesc, FILE *f)
 void
 help_0arg (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("%-*s %s", g->optstringmax, adesc->optstring, adesc->helpstring);
+#endif	//0
 }
 
 
@@ -947,7 +956,9 @@ help_0arg (G *g, const struct arglist *adesc)
 void
 phelp_0arg (G *g, const struct arglist *adesc)
 {
+#if 0
         printf ("-lN-T%-*s %s", g->optstringmax-adesc->pad, adesc->optstring, adesc->helpstring);
+#endif	//0
 }
 
 
@@ -958,9 +969,11 @@ phelp_0arg (G *g, const struct arglist *adesc)
 void
 help_uint (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -971,9 +984,11 @@ help_uint (G *g, const struct arglist *adesc)
 void
 help_scale_uintd (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -985,9 +1000,11 @@ help_scale_uintd (G *g, const struct arglist *adesc)
 void
 phelp_uint (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "U",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -999,9 +1016,11 @@ phelp_uint (G *g, const struct arglist *adesc)
 void
 phelp_scale_uint (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "S",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -1013,9 +1032,11 @@ phelp_scale_uint (G *g, const struct arglist *adesc)
 void
 phelp_scale_pow2 (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "P",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -1026,9 +1047,11 @@ phelp_scale_pow2 (G *g, const struct arglist *adesc)
 void
 help_char (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "C",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -1040,9 +1063,11 @@ help_char (G *g, const struct arglist *adesc)
 void
 phelp_char (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("-lN-T%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "C",
 		adesc->helpstring);
+#endif	//0
 }
 
 
@@ -1052,11 +1077,13 @@ phelp_char (G *g, const struct arglist *adesc)
 void
 help_string (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "F",
 		adesc->helpstring);
 	if (*(char **)adesc->var != NULL)
 		printf (" (\"%s\")", *(char **)adesc->var);
+#endif	//0
 }
 
 
@@ -1067,11 +1094,13 @@ help_string (G *g, const struct arglist *adesc)
 void
 help_addr (G *g, const struct arglist *adesc)
 {
+#if 0
 	printf ("%s %-*s %s", adesc->optstring,
 		g->optstringmax-(int)strlen(adesc->optstring)-adesc->pad+1, "A",
 		adesc->helpstring);
 	if (*(long *)adesc->var != 0)
 		printf (" (0x%lx)", *(long *)adesc->var);
+#endif	//0
 }
 
 
@@ -1086,9 +1115,11 @@ summarize_caches (G *g, d4cache *ci, d4cache *cd)
 	printf ("\n---Summary of options "
 		"(-help option gives usage information).\n\n");
 
+#if 0
 	for (adesc = args;  adesc->optstring != NULL;  adesc++)
 		if (adesc->sumf != (void (*)())NULL)
 			adesc->sumf (adesc, stdout);
+#endif	//0
 }
 
 
@@ -2004,7 +2035,8 @@ main (int argc, char **argv)
 				g->progname = cp+1;
 		}
 	}
-	doargs (g, argc, argv);
+	//doargs (g, argc, argv);
+	doargs_simple(g, argc, argv);
 	verify_options(g);
 	initialize_caches (g, &g->ci, &g->cd);
 

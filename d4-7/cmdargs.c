@@ -639,10 +639,24 @@ verify_options(G *g)
 			int active = nparams != 0 || g->level_doccc[idu][lev] != 0;
 			nidu += active;
 			if (active && nparams != (6+2*(idu!=1))) {
-				if (g->level_blocksize[idu][lev]==0)
-					unspec (g, lev, idu, "block size", &g->level_blocksize[0][0], "16");
-				if (g->level_size[idu][lev]==0)
+				if (g->level_blocksize[idu][lev]==0) { 
+					printf("%s %d\n", __FUNCTION__, __LINE__);
+					unspec (g, lev, idu, "block size", &g->level_blocksize[0][0], "16");}
+				if (g->level_size[idu][lev]==0) {
+					printf("%s %d\n", __FUNCTION__, __LINE__);
 					unspec (g, lev, idu, "size", &g->level_size[0][0], "16k");
+				}
+				printf("%s %d nparams=%d idu=%d\n", __FUNCTION__, __LINE__, nparams, idu);
+				printf("%d %d %d %d %d %d %d %d\n",
+				       (g->level_blocksize[idu][lev]!=0) ,
+				       (g->level_subblocksize[idu][lev]!=0) ,
+				       (g->level_size[idu][lev]!=0) ,
+				       (g->level_assoc[idu][lev]!=0) ,
+				       (g->level_replacement[idu][lev]!=0) ,
+				       (g->level_fetch[idu][lev]!=0) ,
+				       (g->level_walloc[idu][lev]!=0) ,	/* only for u or d */
+				       (g->level_wback[idu][lev]!=0)	/* only for u or d */
+				       );
 				nerr++;
 			}
 		}
@@ -867,3 +881,44 @@ init_1cache (G *g, d4cache *c, int lev, int idu)
 	c->prefetch_distance = g->level_prefetch_distance[idu][lev] * g->level_subblocksize[idu][lev];
 	c->prefetch_abortpercent = g->level_prefetch_abortpercent[idu][lev];
 }
+
+void
+doargs_simple(G *g, int argc, char **argv)	
+{
+	//	"-l1-isize 8k -l1-dsize 8k -l1-ibsize 16 -l1-dbsize 16
+	//	-l1-iassoc 2 -l1-dassoc 2 -l1-irepl l -l1-drepl l
+	//	-l1-ifetch d -l1-dfetch d -l1-dwalloc a -l1-dwback a
+	//	-flushcount 10k -stat-idcombine -informat d"
+	
+	memset(g->level_size, 0, sizeof(g->level_size));
+	memset(g->level_blocksize, 0, sizeof(g->level_blocksize));
+	memset(g->level_assoc, 0, sizeof(g->level_assoc));
+	memset(g->level_replacement, 0, sizeof(g->level_replacement));
+	memset(g->level_fetch, 0, sizeof(g->level_replacement));
+	memset(g->level_walloc, 0, sizeof(g->level_walloc));
+	memset(g->level_wback, 0, sizeof(g->level_wback));
+
+	g->level_size[2][0] = 8192;	//-l1-dsize 8k
+	g->level_size[1][0] = 8192;	//-l1-isize 8k
+
+	g->level_blocksize[2][0] = 16; //-l1-dbsize 16
+	g->level_blocksize[1][0] = 16; //-l1-ibsize 16
+
+	g->level_assoc[2][0] = 2;	//-l1-dassoc 2
+	g->level_assoc[1][0] = 2;	//-l1-iassoc 2
+
+	g->level_replacement[2][0] = 'l';
+	g->level_replacement[1][0] = 'l';
+
+	g->level_fetch[2][0] = 'd';
+	g->level_fetch[1][0] = 'd';
+
+	g->level_walloc[2][0] = 'a';
+	g->level_wback[2][0] = 'a';
+
+	g->flushcount = 10240;
+	g->stat_idcombine = 1;
+	g->informat = 'd';
+	g->maxlevel = 1;
+}
+
