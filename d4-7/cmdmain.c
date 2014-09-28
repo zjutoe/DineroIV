@@ -1963,51 +1963,77 @@ clog2 (unsigned int x)
 	return i;
 }
 
-int do_cache_ref(G *g, 
-		 d4memref r, 
-		 d4cache *ci, d4cache *cd, 
-		 double *tmaxcount, double *flcount, 
-		 double tintcount)
+#define MAXCORE 16
+G *gg[MAXCORE];
+int gg_core_id = 0;
+
+int do_cache_ref(int core_id, d4memref r)
 {
 	int miss_cnt = 0;
-		r = next_trace_item(g);
-		if (r.accesstype == D4TRACE_END)
-			goto done;
 
-		if (g->maxcount != 0 && *tmaxcount >= g->maxcount) {
-			printf ("---Maximum address count exceeded.\n");
-			return -1;
-		}
-		switch (r.accesstype) {
-		case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
-		case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
-		default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
-		}
-		*tmaxcount += 1;
-		if (tintcount > 0 && (tintcount -= 1) <= 0) {
-			dostats(g);
-			tintcount = g->stat_interval;
-		}
-		if (*flcount > 0 && (*flcount -= 1) <= 0) {
-			/* flush cache = copy back and invalidate */
-			r.accesstype = D4XCOPYB;
-			r.address = 0;
-			r.size = 0;
-			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
-			r.accesstype = D4XINVAL;
-			miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
-			if (ci != cd) {
-				miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
-			}
-			*flcount = g->flushcount;
-		}
-		return miss_cnt;
- done:
+	if (core_id < 0 || core_id >= MAXCORE) {
+		printf("ERROR: invalid core id\n");
 		return -1;
+	}
+	G *g = gg[core_id];
+
+	//r = next_trace_item(g);
+	if (r.accesstype == D4TRACE_END)
+		goto done;
+
+	if (g->maxcount != 0 && g->tmaxcount >= g->maxcount) {
+		printf ("---Maximum address count exceeded.\n");
+		return -1;
+	}
+
+	d4cache *ci = g->ci;
+	d4cache *cd = g->cd;
+
+	switch (r.accesstype) {
+	case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
+	case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
+	default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
+	}
+	g->tmaxcount += 1;
+	if (g->tintcount > 0 && (g->tintcount -= 1) <= 0) {
+		dostats(g);
+		g->tintcount = g->stat_interval;
+	}
+	if (g->flcount > 0 && (g->flcount -= 1) <= 0) {
+		/* flush cache = copy back and invalidate */
+		r.accesstype = D4XCOPYB;
+		r.address = 0;
+		r.size = 0;
+		miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+		r.accesstype = D4XINVAL;
+		miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
+		if (ci != cd) {
+			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+		}
+		g->flcount = g->flushcount;
+	}
+	return miss_cnt;
+ done:
+	return -1;
 }
 
-G* do_cache_init()
+// int do_cache_ref_core(int core_id, 
+// 		      d4memref r, 
+// 		      d4cache *ci, d4cache *cd, 
+// 		      double *tmaxcount, double *flcount, 
+// 		      double tintcount)
+// {
+
+// 	do_cache_ref(g, r, g->ci, g->cd, g->tmaxcount, g->flcount, g->tintcount);
+// }
+
+int do_cache_init()
 {
+	if (gg_core_id >= MAXCORE - 1) {
+		printf("ERROR: exceed core number limit\n");
+		return -1;
+	}
+
 	G *g = (G*)malloc(sizeof(G));	
 	if (g == NULL)
 		printf("g malloc failed\n");
@@ -2031,7 +2057,7 @@ G* do_cache_init()
 	if (g->cd == NULL)
 		g->cd = g->ci;	/* for unified L1 cache */
 
-
-	return g;
+	gg[gg_core_id++] = g;
+	return gg_core_id - 1;
 }
 

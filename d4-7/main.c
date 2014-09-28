@@ -14,7 +14,13 @@
 #include "cmdargs.h"
 #include "tracein.h"
 #include "global.h"
-#include "cmdmain.h"
+
+extern G* gg[];
+
+extern int do_cache_init();
+extern int do_cache_ref(int core_id, d4memref r);
+extern void summarize_caches (G *g, d4cache *ci, d4cache *cd);
+extern d4memref next_trace_item(G *g);
 
 /*
  * Everything starts here
@@ -23,43 +29,15 @@ int
 main (int argc, char **argv)
 {
 	d4memref r;
-	double tmaxcount = 0, tintcount;
-	double flcount;
-
-	G *g = do_cache_init();
-
-	// G *g = (G*)malloc(sizeof(G));	
-	// if (g == NULL)
-	// 	printf("g malloc failed\n");
 	// double tmaxcount = 0, tintcount;
 	// double flcount;
-	// g->progname = "dineroIV";
-	// g->cust_argc = 1;
-	// g->informat = DEFVAL_informat;
 
-	// if (argc > 0) {
-	// 	char *cp;
-	// 	g->progname = argv[0];
-	// 	while ((cp = strrchr (g->progname, '/')) != NULL) {
-	// 		if (cp[1] == 0)
-	// 			cp[0] = 0;	/* trim trailing '/' */
-	// 		else
-	// 			g->progname = cp+1;
-	// 	}
-	// }
-	//doargs (g, argc, argv);
-
-	// verify_options(g);
-	// initialize_caches (g, &g->ci, &g->cd);
-
-// #if !D4CUSTOM
-// 	if (g->customname != NULL) {
-// 		customize_caches(g);
-// 		/* never returns */
-// 	}
-// #endif
-// 	if (g->cd == NULL)
-// 		g->cd = g->ci;	/* for unified L1 cache */
+	int core = do_cache_init();
+	if (core < 0) {
+		printf("ERROR: fail to init cache\n");
+		return -1;
+	}
+	G *g = gg[core];
 
 	printf ("---Dinero IV cache simulator, version %s\n", D4VERSION);
 	printf ("---Written by Jan Edler and Mark D. Hill\n");
@@ -73,10 +51,11 @@ main (int argc, char **argv)
 	int miss_cnt = 0;
 
 	printf ("\n---Simulation begins.\n");
-	tintcount = g->stat_interval;
-	flcount = g->flushcount;
+	// tintcount = g->stat_interval;
+	// flcount = g->flushcount;
 	while (1) {
-		miss_cnt = do_cache_ref(g, r, g->ci, g->cd, &tmaxcount, &flcount, tintcount), &tmaxcount;
+		r = next_trace_item(g);
+		miss_cnt = do_cache_ref(core, r);
 		if (miss_cnt == -1) goto done;
 	}
 done:

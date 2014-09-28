@@ -112,6 +112,10 @@ long on_trigger;
 long off_trigger;
 int stat_idcombine;
 
+double tmaxcount;
+double flcount;
+double tintcount;
+
 } G;
 
 #endif	//#ifdef _GLOBAL_H
