@@ -53,9 +53,9 @@ SHELL = /bin/sh
 @SET_MAKE@
 
 LIB_OBJ_LIST = ref.o misc.o
-CMD_OBJ_LIST = cmdmain.o cmdargs.o tracein.o \
+CMD_OBJ_LIST = main.o cmdmain.o cmdargs.o tracein.o \
 	xdinfmt.o dinfmt.o binaryfmt.o pixie32fmt.o pixie64fmt.o
-D4LUA_OBJ_LIST = d4lua.o cmdargs.o tracein.o \
+D4LUA_OBJ_LIST = cmdmain.o cmdargs.o tracein.o \
 	xdinfmt.o dinfmt.o binaryfmt.o pixie32fmt.o pixie64fmt.o
 
 D4_SRC = $(srcdir)
@@ -67,7 +67,7 @@ CUSTOM_NAME = d4custom # this is really just a placeholder
 
 CC = @CC@
 DEBUG=@D4_DEBUG_FLAGS@
-CFLAGS = @CFLAGS@ $(DEBUG) -I$(D4_SRC)
+CFLAGS = @CFLAGS@ $(DEBUG) -I$(D4_SRC) -fPIC
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
@@ -109,6 +109,6 @@ dinfmt.o: dinfmt.c d4.h cmdd4.h tracein.h config.h
 binaryfmt.o: binaryfmt.c d4.h cmdd4.h tracein.h config.h
 pixie32fmt.o: pixie32fmt.c d4.h cmdd4.h tracein.h config.h
 pixie64fmt.o: pixie64fmt.c d4.h cmdd4.h tracein.h config.h
-d4lua.o: d4lua.c d4.h cmdd4.h cmdargs.h tracein.h config.h
+#d4lua.o: d4lua.c d4.h cmdd4.h cmdargs.h tracein.h config.h
 #	$(CC) -fPIC -c d4lua.c
 
