@@ -2027,7 +2027,7 @@ int do_cache_ref(int core_id, d4memref r)
 // 	do_cache_ref(g, r, g->ci, g->cd, g->tmaxcount, g->flcount, g->tintcount);
 // }
 
-int do_cache_init()
+int do_cache_init(void)
 {
 	if (gg_core_id >= MAXCORE - 1) {
 		printf("ERROR: exceed core number limit\n");
