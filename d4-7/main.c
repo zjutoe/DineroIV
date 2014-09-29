@@ -17,7 +17,7 @@
 
 extern G* gg[];
 
-extern int do_cache_init();
+extern int do_cache_init(int core_id);
 extern int do_cache_ref(int core_id, d4memref r);
 extern void summarize_caches (G *g, d4cache *ci, d4cache *cd);
 extern d4memref next_trace_item(G *g);
@@ -30,7 +30,7 @@ main (int argc, char **argv)
 {
 	d4memref r;
 
-	int core = do_cache_init();
+	int core = do_cache_init(0);
 	if (core < 0) {
 		printf("ERROR: fail to init cache\n");
 		return -1;

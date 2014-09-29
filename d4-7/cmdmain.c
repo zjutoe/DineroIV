@@ -1965,7 +1965,6 @@ clog2 (unsigned int x)
 
 #define MAXCORE 16
 G *gg[MAXCORE];
-int gg_core_id = 0;
 
 int do_cache_ref(int core_id, d4memref r)
 {
@@ -2027,26 +2026,27 @@ int do_cache_ref(int core_id, d4memref r)
 // 	do_cache_ref(g, r, g->ci, g->cd, g->tmaxcount, g->flcount, g->tintcount);
 // }
 
-int do_cache_init(void)
+int do_cache_init(int core_id)
 {
-	if (gg_core_id >= MAXCORE - 1) {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
+	if (core_id >= MAXCORE) {
 		printf("ERROR: exceed core number limit\n");
 		return -1;
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	G *g = (G*)malloc(sizeof(G));	
 	if (g == NULL)
 		printf("g malloc failed\n");
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	g->progname = "dineroIV";
 	g->cust_argc = 1;
 	g->informat = DEFVAL_informat;
 	
 	doargs_simple(g);
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	verify_options(g);
 	initialize_caches (g, &g->ci, &g->cd);
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 
 #if !D4CUSTOM
 	if (g->customname != NULL) {
@@ -2057,7 +2057,8 @@ int do_cache_init(void)
 	if (g->cd == NULL)
 		g->cd = g->ci;	/* for unified L1 cache */
 
-	gg[gg_core_id++] = g;
-	return gg_core_id - 1;
+	gg[core_id] = g;
+	printf("%s %d\n", __FUNCTION__, __LINE__);
+	return core_id;
 }
 

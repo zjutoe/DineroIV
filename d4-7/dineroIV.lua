@@ -8,13 +8,14 @@ ffi.cdef[[
 	 unsigned short	size;		/* of memory referenced, in bytes */
       } d4memref;
 
-      int do_cache_init(void);
+
+      int do_cache_init(int core_id);
       int do_cache_ref(int core_id, d4memref r);
 ]]
 
 d4lua = ffi.load('./libd4lua.so')
 
-d4lua.do_cache_init()
+d4lua.do_cache_init(0)
 
 local r = ffi.new("d4memref")
 
