@@ -1744,7 +1744,7 @@ next_trace_item(G *g)
 	static int once = 1;
 	static int discard = 0;
 	static int hastoggled = 0;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (once) {
 		once = 0;
 		if (g->on_trigger != 0)
@@ -1761,6 +1761,7 @@ next_trace_item(G *g)
 			} while ((tskipcount -= 1) > 0);
 		}
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	while (1) {
 		r = input_function();
 		if (r.accesstype == D4TRACE_END) {
@@ -1798,7 +1799,7 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 		*ci,
 		*cd;
 
-	g->mem = cd = ci = d4new(NULL);
+	g->mem = cd = ci = d4new(g, NULL);
 	if (ci == NULL)
 		die (g, "cannot create simulated memory\n");
 	ci->name = memname;
@@ -1807,9 +1808,9 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 		for (idu = 0;  idu < 3;  idu++) {
 			if (g->level_size[idu][lev] != 0) {
 				switch (idu) {
-				case 0:	cd = ci = c = d4new (ci); break;	/* u */
-				case 1:	     ci = c = d4new (ci); break;	/* i */
-				case 2:	     cd = c = d4new (cd); break;	/* d */
+				case 0:	cd = ci = c = d4new (g, ci); break;	/* u */
+				case 1:	     ci = c = d4new (g, ci); break;	/* i */
+				case 2:	     cd = c = d4new (g, cd); break;	/* d */
 				}
 				if (c == NULL)
 					die (g, "cannot create level %d %ccache\n",
@@ -1819,7 +1820,7 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 			}
 		}
 	}
-	i = d4setup();
+	i = d4setup(g);
 	if (i != 0)
 		die (g, "cannot complete cache initializations; d4setup = %d\n", i);
 	*icachep = ci;
@@ -1857,7 +1858,7 @@ customize_caches(G *g)
 	f = fopen (fname, "w");
 	if (f == NULL)
 		die (g, "can't create file %s for writing (%s)\n", fname, strerror(errno));
-	d4customize(f);
+	d4customize(g, f);
 
 	/* call all customf functions */
 	fprintf (f, "\n#include \"cmdargs.h\"\n");
@@ -1984,33 +1985,35 @@ int do_cache_ref(int core_id, d4memref r)
 		printf ("---Maximum address count exceeded.\n");
 		return -1;
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	d4cache *ci = g->ci;
 	d4cache *cd = g->cd;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	switch (r.accesstype) {
-	case D4XINSTRN:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); break;
-	case D4XINVAL:	  miss_cnt = d4ref (ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
-	default:	  miss_cnt = d4ref (cd, r);  printf("miss %d\n", miss_cnt); break;
+	case D4XINSTRN:	  miss_cnt = d4ref (g, ci, r);  printf("miss %d\n", miss_cnt); break;
+	case D4XINVAL:	  miss_cnt = d4ref (g, ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
+	default:	  miss_cnt = d4ref (g, cd, r);  printf("miss %d\n", miss_cnt); break;
 	}
 	g->tmaxcount += 1;
 	if (g->tintcount > 0 && (g->tintcount -= 1) <= 0) {
 		dostats(g);
 		g->tintcount = g->stat_interval;
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (g->flcount > 0 && (g->flcount -= 1) <= 0) {
 		/* flush cache = copy back and invalidate */
 		r.accesstype = D4XCOPYB;
 		r.address = 0;
 		r.size = 0;
-		miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+		miss_cnt = d4ref (g, cd, r); printf("miss %d\n", miss_cnt);
 		r.accesstype = D4XINVAL;
-		miss_cnt = d4ref (ci, r); printf("miss %d\n", miss_cnt);
+		miss_cnt = d4ref (g, ci, r); printf("miss %d\n", miss_cnt);
 		if (ci != cd) {
-			miss_cnt = d4ref (cd, r); printf("miss %d\n", miss_cnt);
+			miss_cnt = d4ref (g, cd, r); printf("miss %d\n", miss_cnt);
 		}
 		g->flcount = g->flushcount;
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	return miss_cnt;
  done:
 	return -1;

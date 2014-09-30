@@ -49,22 +49,14 @@
 #include <stdio.h>
 #include <assert.h>
 #include "d4.h"
+#include "global.h"
 
-
-/*
- * Global variable definitions
- */
-struct d4_stackhash_struct d4stackhash;
-d4stacknode d4freelist;
-int d4nnodes;
-d4pendstack *d4pendfree;
-d4cache *d4_allcaches;
 
 
 /*
  * Private prototypes for this file
  */
-extern void d4_invblock (d4cache *, int stacknum, d4stacknode *);
+extern void d4_invblock (G *g, d4cache *, int stacknum, d4stacknode *);
 extern void d4_invinfcache (d4cache *, const d4memref *);
 
 
@@ -74,7 +66,7 @@ extern void d4_invinfcache (d4cache *, const d4memref *);
  * memory hierarchy, with memory at the bottom and processors at the top.
  */
 d4cache *
-d4new (d4cache *larger)
+d4new (G *g, d4cache *larger)
 {
 	static int nextcacheid = 1;
 	d4cache *c = calloc (1, sizeof(d4cache));
@@ -88,8 +80,8 @@ d4new (d4cache *larger)
 		c->flags = D4F_MEM;
 		c->assoc = 1;	/* not used, but helps avoid compiler warnings */
 	}
-	c->link = d4_allcaches;
-	d4_allcaches = c;	/* d4customize depends on this LIFO order */
+	c->link = g->d4_allcaches;
+	g->d4_allcaches = c;	/* d4customize depends on this LIFO order */
 	return c;
 }
 
@@ -102,14 +94,14 @@ d4new (d4cache *larger)
  * The return value is zero for success.
  */
 int
-d4setup()
+d4setup(G *g)
 {
 	int i, nnodes;
 	int r = 0;
 	d4cache *c, *cc;
 	d4stacknode *nodes = NULL, *ptr;
 
-	for (c = d4_allcaches;  c != NULL;  c = c->link) {
+	for (c = g->d4_allcaches;  c != NULL;  c = c->link) {
 
 		/* Check some stuff the user shouldn't muck with */
 		if (c->stack != NULL || c->pending != NULL ||
@@ -230,9 +222,9 @@ d4setup()
 			}
 			assert (ptr - nodes == nnodes);
 #if D4_HASHSIZE == 0
-			d4stackhash.size += c->numsets * c->assoc;
+			g->d4stackhash.size += c->numsets * c->assoc;
 #endif
-			d4nnodes += nnodes;
+			g->d4nnodes += nnodes;
 		}
 
 		/* make a printable name if the user didn't pick one */
@@ -245,10 +237,10 @@ d4setup()
 		}
 	}
 #if D4_HASHSIZE > 0
-	d4stackhash.size = D4_HASHSIZE;
+	g->d4stackhash.size = D4_HASHSIZE;
 #endif
-	d4stackhash.table = calloc (d4stackhash.size, sizeof(d4stacknode*));
-	if (d4stackhash.table == NULL)
+	g->d4stackhash.table = calloc (g->d4stackhash.size, sizeof(d4stacknode*));
+	if (g->d4stackhash.table == NULL)
 		goto fail13;
 	return 0;
 
@@ -270,14 +262,14 @@ fail3:	r++;
 fail2:	r++;
 fail1:	r++;
 
-	for (cc = d4_allcaches;  cc != c;  cc = cc->link) {
+	for (cc = g->d4_allcaches;  cc != c;  cc = cc->link) {
 		/* don't bother trying to deallocate c->name */
 		free (c->stack[0].top);
 		free (c->stack);
 		c->stack = NULL;
 		c->numsets = 0;
 	}
-	d4nnodes = 0;
+	g->d4nnodes = 0;
 	return r;
 }
 
@@ -467,13 +459,13 @@ d4checkstack (d4cache *c, int stacknum, char *msg)
  * Find address in stack.
  */
 d4stacknode *
-d4_find (d4cache *c, int stacknum, d4addr blockaddr)
+d4_find (G *g, d4cache *c, int stacknum, d4addr blockaddr)
 {
 	d4stacknode *ptr;
 
 	if (c->stack[stacknum].n > D4HASH_THRESH) {
 		int buck = D4HASH (blockaddr, stacknum, c->cacheid);
-		for (ptr = d4stackhash.table[buck];
+		for (ptr = g->d4stackhash.table[buck];
 		     ptr!=NULL && (ptr->blockaddr!=blockaddr || ptr->cachep!=c || ptr->onstack != stacknum);
 		     ptr = ptr->bucket)
 			assert (ptr->valid != 0);
@@ -567,26 +559,26 @@ d4movetobot (d4cache *c, int stacknum, d4stacknode *ptr)
 
 /* Insert the indicated node into the hash table */
 void
-d4hash (d4cache *c, int stacknum, d4stacknode *s)
+d4hash (G *g, d4cache *c, int stacknum, d4stacknode *s)
 {
 	int buck = D4HASH (s->blockaddr, stacknum, s->cachep->cacheid);
 
 	assert (c->stack[stacknum].n > D4HASH_THRESH);
-	s->bucket = d4stackhash.table[buck];
-	d4stackhash.table[buck] = s;
+	s->bucket = g->d4stackhash.table[buck];
+	g->d4stackhash.table[buck] = s;
 }
 
 
 /* Remove the indicated node from the hash table */
 void
-d4_unhash (d4cache *c, int stacknum, d4stacknode *s)
+d4_unhash (G *g, d4cache *c, int stacknum, d4stacknode *s)
 {
 	int buck = D4HASH (s->blockaddr, stacknum, c->cacheid);
-	d4stacknode *p = d4stackhash.table[buck];
+	d4stacknode *p = g->d4stackhash.table[buck];
 
 	assert (c->stack[stacknum].n > D4HASH_THRESH);
 	if (p == s)
-		d4stackhash.table[buck] = s->bucket;
+		g->d4stackhash.table[buck] = s->bucket;
 	else {
 		while (p->bucket != s) {
 			assert (p->bucket != NULL);
@@ -599,13 +591,13 @@ d4_unhash (d4cache *c, int stacknum, d4stacknode *s)
 
 /* Allocate a structure describing a pending memory reference */
 d4pendstack *
-d4get_mref()
+d4get_mref(G *g)
 {
 	d4pendstack *m;
 
-	m = d4pendfree;
+	m = g->d4pendfree;
 	if (m != NULL) {
-		d4pendfree = m->next;
+		g->d4pendfree = m->next;
 		return m;
 	}
 	m = malloc (sizeof(*m));	/* no need to get too fancy here */
@@ -619,10 +611,10 @@ d4get_mref()
 
 /* Deallocate the structure used to describe a pending memory reference */
 void
-d4put_mref (d4pendstack *m)
+d4put_mref (G *g, d4pendstack *m)
 {
-	m->next = d4pendfree;
-	d4pendfree = m;
+	m->next = g->d4pendfree;
+	g->d4pendfree = m;
 }
 
 
@@ -631,16 +623,17 @@ d4put_mref (d4pendstack *m)
  * to own cache or towards memory
  */
 int
-d4_dopending (d4cache *c, d4pendstack *newm)
+d4_dopending (G *g, d4cache *c, d4pendstack *newm)
 {
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	int miss_cnt = 0;
 	do {
 		c->pending = newm->next;
 		if ((newm->m.accesstype & D4PREFETCH) != 0)
-			miss_cnt += c->ref (c, newm->m);
+			miss_cnt += c->ref (g, c, newm->m);
 		else if ((newm->m.accesstype & D4_MULTIBLOCK) != 0) {
 			newm->m.accesstype &= ~D4_MULTIBLOCK;
-			miss_cnt += c->ref (c, newm->m);
+			miss_cnt += c->ref (g, c, newm->m);
 		}
 		else {
 			switch (D4BASIC_ATYPE(newm->m.accesstype)) {
@@ -658,11 +651,11 @@ d4_dopending (d4cache *c, d4pendstack *newm)
 					break;
 			}
 			// TODO now we ignore downstream misses and don't count them
-			c->downstream->ref (c->downstream, newm->m);
+			c->downstream->ref (g, c->downstream, newm->m);
 		}
-		d4put_mref(newm);
+		d4put_mref(g, newm);
 	} while ((newm = c->pending) != NULL);
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	return miss_cnt;
 }
 
@@ -672,7 +665,7 @@ d4_dopending (d4cache *c, d4pendstack *newm)
  * Each contiguous bunch of subblocks is written in one operation.
  */
 void
-d4_wbblock (d4cache *c, d4stacknode *ptr, const int lg2sbsize)
+d4_wbblock (G *g, d4cache *c, d4stacknode *ptr, const int lg2sbsize)
 {
 	d4addr a;
 	unsigned int b, dbits;
@@ -683,7 +676,7 @@ d4_wbblock (d4cache *c, d4stacknode *ptr, const int lg2sbsize)
 	dbits = ptr->valid & ptr->dirty;
 	a = ptr->blockaddr;
 	do {
-		newm = d4get_mref();
+		newm = d4get_mref(g);
 		newm->m.accesstype = D4XWRITE;
 		for (;  (dbits&b) == 0;  b<<=1)
 			a += sbsize;
@@ -702,13 +695,13 @@ d4_wbblock (d4cache *c, d4stacknode *ptr, const int lg2sbsize)
 
 /* invalidate and deallocate a block, as indicated by ptr */
 void
-d4_invblock (d4cache *c, int stacknum, d4stacknode *ptr)
+d4_invblock (G *g, d4cache *c, int stacknum, d4stacknode *ptr)
 {
 	assert (ptr->valid != 0);
 	ptr->valid = 0;
 	d4movetobot (c, stacknum, ptr);
 	if (c->stack[stacknum].n > D4HASH_THRESH)
-		d4_unhash (c, stacknum, ptr);
+		d4_unhash (g, c, stacknum, ptr);
 }
 
 
@@ -725,7 +718,7 @@ d4_invblock (d4cache *c, int stacknum, d4stacknode *ptr)
  * NOTE: this function does not invalidate!
  */
 void
-d4copyback (d4cache *c, const d4memref *m, int prop)
+d4copyback (G *g, d4cache *c, const d4memref *m, int prop)
 {
 	int stacknum;
 	d4stacknode *ptr;
@@ -734,7 +727,7 @@ d4copyback (d4cache *c, const d4memref *m, int prop)
 	if (m != NULL)
 		assert (m->accesstype == D4XCOPYB);
 	if (prop) {
-		newm = d4get_mref();
+		newm = d4get_mref(g);
 		if (m != NULL)
 			newm->m = *m;
 		else {
@@ -746,19 +739,19 @@ d4copyback (d4cache *c, const d4memref *m, int prop)
 		c->pending = newm;
 	}
 	if (m != NULL && m->size > 0) {		/* copy back just 1 block */
-		ptr = d4_find (c, D4ADDR2SET (c, m->address), D4ADDR2BLOCK (c, m->address));
+		ptr = d4_find (g, c, D4ADDR2SET (c, m->address), D4ADDR2BLOCK (c, m->address));
 		if (ptr != NULL && (ptr->dirty & ptr->valid) != 0)
-			d4_wbblock (c, ptr, c->lg2subblocksize);
+			d4_wbblock (g, c, ptr, c->lg2subblocksize);
 	}
 	else for (stacknum=0;  stacknum < c->numsets;  stacknum++) {
 		d4stacknode *top = c->stack[stacknum].top;
 		assert (top->up->valid == 0); /* this loop skips the bottom node */
 		for (ptr = top;  ptr->down != top;  ptr = ptr->down)
 			if ((ptr->dirty & ptr->valid) != 0)
-				d4_wbblock (c, ptr, c->lg2subblocksize);
+				d4_wbblock (g, c, ptr, c->lg2subblocksize);
 	}
 	if ((newm = c->pending) != NULL)
-		d4_dopending (c, newm);
+		d4_dopending (g, c, newm);
 }
 
 
@@ -776,7 +769,7 @@ d4copyback (d4cache *c, const d4memref *m, int prop)
  *	you have to call d4copyback first for that.
  */
 void
-d4invalidate (d4cache *c, const d4memref *m, int prop)
+d4invalidate (G *g, d4cache *c, const d4memref *m, int prop)
 {
 	int stacknum;
 	d4stacknode *ptr;
@@ -785,7 +778,7 @@ d4invalidate (d4cache *c, const d4memref *m, int prop)
 	if (m != NULL)
 		assert (m->accesstype == D4XINVAL);
 	if (prop) {
-		newm = d4get_mref();
+		newm = d4get_mref(g);
 		if (m != NULL)
 			newm->m = *m;
 		else {
@@ -799,12 +792,12 @@ d4invalidate (d4cache *c, const d4memref *m, int prop)
 	if (m != NULL && m->size > 0) {		/* invalidate just one block */
 		d4addr blockaddr = D4ADDR2BLOCK (c, m->address);
 		stacknum = D4ADDR2SET (c, m->address);
-		ptr = d4_find (c, stacknum, blockaddr);
+		ptr = d4_find (g, c, stacknum, blockaddr);
 		if (ptr != NULL)
-			d4_invblock (c, stacknum, ptr);
+			d4_invblock (g, c, stacknum, ptr);
 		if ((c->flags & D4F_CCC) != 0 &&	/* fully assoc cache */
-		    (ptr = d4_find (c, c->numsets, blockaddr)) != NULL)
-			d4_invblock (c, c->numsets, ptr);
+		    (ptr = d4_find (g, c, c->numsets, blockaddr)) != NULL)
+			d4_invblock (g, c, c->numsets, ptr);
 	}
 	else for (stacknum=0;  stacknum < c->numsets + ((c->flags & D4F_CCC) != 0);  stacknum++) {
 		d4stacknode *top = c->stack[stacknum].top;
@@ -812,13 +805,13 @@ d4invalidate (d4cache *c, const d4memref *m, int prop)
 		for (ptr = top;  ptr->down != top;  ptr = ptr->down) {
 			if (ptr->valid == 0)
 				break;
-			d4_invblock (c, stacknum, ptr);
+			d4_invblock (g, c, stacknum, ptr);
 		}
 	}
 	if ((c->flags & D4F_CCC) != 0)
 		d4_invinfcache (c, m);
 	if ((newm = c->pending) != NULL)
-		d4_dopending (c, newm);
+		d4_dopending (g, c, newm);
 }
 
 
@@ -878,7 +871,7 @@ d4_invinfcache (d4cache *c, const d4memref *m)
  * and link it with the simulator.
  */
 void
-d4customize (FILE *f)
+d4customize (G *g, FILE *f)
 {
 	d4cache *c;
 	int i, n;
@@ -893,11 +886,11 @@ d4customize (FILE *f)
 	 * which can be used to find the proper customized d4ref function
 	 * when the customized program is started up.
 	 */
-	if (d4_allcaches == NULL) {
+	if (g->d4_allcaches == NULL) {
 		fprintf (stderr, "Dinero IV: d4customize called before d4new\n");
 		exit (9);
 	}
-	n = d4_allcaches->cacheid;
+	n = g->d4_allcaches->cacheid;
 	for (i = 1;  i <= n;  i++)
 		fprintf (f, "extern void d4_%dref (d4cache *, d4memref);\n", i);
 	fprintf (f, "void (*d4_custom[])(d4cache *, d4memref) = {\n\t");
@@ -913,7 +906,7 @@ d4customize (FILE *f)
 	 * If you add new policy functions to ref.c, you need to
 	 * add code here too!
 	 */
-	for (c = d4_allcaches;  c != NULL;  c = c->link) {
+	for (c = g->d4_allcaches;  c != NULL;  c = c->link) {
 		int cid = c->cacheid;
 		fprintf (f, "\n");
 
@@ -1135,7 +1128,7 @@ d4customize (FILE *f)
 	/*
 	 * Now tie all the customized values up for checking in d4setup
 	 */
-	n = d4_allcaches->cacheid;
+	n = g->d4_allcaches->cacheid;
 	fprintf (f, "\nlong *d4_cust_vals[%d+1] = {\n\tNULL,\n", n);
 	for (i = 1;  i <= n;  i++)
 		fprintf (f, "	&d4_cust_%d_vals[0]%s\n", i, (i<n) ? "," : "");

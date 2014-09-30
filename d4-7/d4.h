@@ -167,7 +167,7 @@ struct d4_stackhash_struct {
 
 #define D4HASH_THRESH	8	/* stacks bigger than this size are hashed */
 #define D4HASH(ba,sn,cid)	(((unsigned long)(ba)+(sn)+(cid)) %				\
-				 ((D4_HASHSIZE>0) ? D4_HASHSIZE : d4stackhash.size))
+				 ((D4_HASHSIZE>0) ? D4_HASHSIZE : g->d4stackhash.size))
 #ifndef D4_HASHSIZE
 #define D4_HASHSIZE 0	/* default is automatic */
 #endif
@@ -192,7 +192,8 @@ typedef struct {
 #endif
 
 
-
+struct _G;
+typedef struct _G G;
 
 	/*
 	 * full specification of a cache
@@ -222,7 +223,7 @@ typedef struct d4_cache_struct {
 	 * to the processors.
 	 */
 	struct d4_cache_struct *downstream;
-	int (*ref)(struct d4_cache_struct *, d4memref);	/* d4ref or custom version */
+	int (*ref)(G *g, struct d4_cache_struct *, d4memref);	/* d4ref or custom version */
 
 	/*
 	 * Cache policy functions and data:
@@ -231,10 +232,10 @@ typedef struct d4_cache_struct {
 	 * (normally, each policy should have an initialization routine)
 	 */
 				/* adjust priority stack */
-	d4stacknode	*(*replacementf) (struct d4_cache_struct *, int stacknum,
+	d4stacknode	*(*replacementf) (G *g, struct d4_cache_struct *, int stacknum,
 					  d4memref, d4stacknode *ptr);
 				/* indicate a prefetch with prefetch_pending */
-	d4pendstack	*(*prefetchf) (struct d4_cache_struct *, d4memref,
+	d4pendstack	*(*prefetchf) (G *g, struct d4_cache_struct *, d4memref,
 				       int miss, d4stacknode *ptr);
 				/* walloc returns true for write-allocate */
 	int		(*wallocf) (struct d4_cache_struct *, d4memref);
@@ -389,6 +390,8 @@ extern int d4nnodes;	/* total number of stack nodes allocated */
 
 
 
+struct _G;
+typedef struct _G G;
 
 /*
  * Global declarations for functions making up the Dinero IV
@@ -396,29 +399,29 @@ extern int d4nnodes;	/* total number of stack nodes allocated */
  */
 
 /* top level user-callable functions */
-extern d4cache	*d4new (d4cache *);
-extern int	d4setup (void);
+extern d4cache	*d4new (G *g, d4cache *);
+extern int	d4setup (G *g);
 #if D4CUSTOM && !defined(d4ref)
-#define		d4ref(c,m) (*(c)->ref)(c,m) /* call customized version */
+#define		d4ref(g, c,m) (*(c)->ref)(g, c,m) /* call customized version */
 #else
-int		d4ref (d4cache *, d4memref); /* call generic version */
+int		d4ref (G *g, d4cache *, d4memref); /* call generic version */
 #endif
-void		d4copyback (d4cache *, const d4memref *, int);
-void		d4invalidate (d4cache *, const d4memref *, int);
-void		d4customize (FILE *);
+void		d4copyback (G *g, d4cache *, const d4memref *, int);
+void		d4invalidate (G *g, d4cache *, const d4memref *, int);
+void		d4customize (G *g, FILE *);
 
 /* replacement policies */
-extern d4stacknode *d4rep_lru (d4cache *, int stacknum, d4memref, d4stacknode *ptr);
-extern d4stacknode *d4rep_fifo (d4cache *, int stacknum, d4memref, d4stacknode *ptr);
-extern d4stacknode *d4rep_random (d4cache *, int stacknum, d4memref, d4stacknode *ptr);
+extern d4stacknode *d4rep_lru (G *g, d4cache *, int stacknum, d4memref, d4stacknode *ptr);
+extern d4stacknode *d4rep_fifo (G *g, d4cache *, int stacknum, d4memref, d4stacknode *ptr);
+extern d4stacknode *d4rep_random (G *g, d4cache *, int stacknum, d4memref, d4stacknode *ptr);
 
 /* prefetch policies */
 extern d4pendstack *d4prefetch_none (d4cache *, d4memref, int miss, d4stacknode *);
-extern d4pendstack *d4prefetch_always (d4cache *, d4memref, int miss, d4stacknode *);
-extern d4pendstack *d4prefetch_loadforw (d4cache *, d4memref, int miss, d4stacknode *);
-extern d4pendstack *d4prefetch_subblock (d4cache *, d4memref, int miss, d4stacknode *);
-extern d4pendstack *d4prefetch_miss (d4cache *, d4memref, int miss, d4stacknode *);
-extern d4pendstack *d4prefetch_tagged (d4cache *, d4memref, int miss, d4stacknode *);
+extern d4pendstack *d4prefetch_always (G *g, d4cache *, d4memref, int miss, d4stacknode *);
+extern d4pendstack *d4prefetch_loadforw (G *g, d4cache *, d4memref, int miss, d4stacknode *);
+extern d4pendstack *d4prefetch_subblock (G *g, d4cache *, d4memref, int miss, d4stacknode *);
+extern d4pendstack *d4prefetch_miss (G *g, d4cache *, d4memref, int miss, d4stacknode *);
+extern d4pendstack *d4prefetch_tagged (G *g, d4cache *, d4memref, int miss, d4stacknode *);
 
 /* write allocate policies */
 extern int d4walloc_always (d4cache *, d4memref);
@@ -454,14 +457,14 @@ extern void d4init_wback_nofetch (d4cache *);
 
 
 /* Miscellaneous functions users may or may not need */
-extern d4pendstack *d4get_mref(void);	/* allocate struct for pending mref */
-extern void d4put_mref (d4pendstack *);	/* deallocate pending mref */
+extern d4pendstack *d4get_mref(G *g);	/* allocate struct for pending mref */
+extern void d4put_mref (G *g, d4pendstack *);	/* deallocate pending mref */
 extern void d4init_prefetch_generic (d4cache *); /* helper routine for prefetch */
 
 extern d4stacknode *d4findnth (d4cache *, int stacknum, int n);
 extern void d4movetotop (d4cache *, int stacknum, d4stacknode *);
 extern void d4movetobot (d4cache *, int stacknum, d4stacknode *);
-extern void d4hash (d4cache *, int stacknum, d4stacknode *);
+extern void d4hash (G *g, d4cache *, int stacknum, d4stacknode *);
 
 
 
@@ -470,10 +473,10 @@ extern void d4hash (d4cache *, int stacknum, d4stacknode *);
  * Global declarations for internal Dinero IV use.
  */
 extern int d4_infcache (d4cache *, d4memref);
-extern d4memref d4_splitm (d4cache *, d4memref, d4addr);
-extern int d4_dopending (d4cache *, d4pendstack *);
-extern void d4_unhash (d4cache *c, int stacknum, d4stacknode *);
-extern d4stacknode *d4_find (d4cache *, int stacknum, d4addr blockaddr);
-extern void d4_wbblock (d4cache *, d4stacknode *, const int);
+extern d4memref d4_splitm (G *g, d4cache *, d4memref, d4addr);
+extern int d4_dopending (G *g, d4cache *, d4pendstack *);
+extern void d4_unhash (G *g, d4cache *c, int stacknum, d4stacknode *);
+extern d4stacknode *d4_find (G *g, d4cache *, int stacknum, d4addr blockaddr);
+extern void d4_wbblock (G *g, d4cache *, d4stacknode *, const int);
 extern int d4_ncustom;
 extern long *d4_cust_vals[];

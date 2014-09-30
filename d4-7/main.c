@@ -31,10 +31,12 @@ main (int argc, char **argv)
 	d4memref r;
 
 	int core = do_cache_init(0);
+	core = do_cache_init(1);
 	if (core < 0) {
 		printf("ERROR: fail to init cache\n");
 		return -1;
 	}
+
 	G *g = gg[core];
 
 	printf ("---Dinero IV cache simulator, version %s\n", D4VERSION);
@@ -54,6 +56,7 @@ main (int argc, char **argv)
 	g->flcount = g->flushcount;
 	while (1) {
 		r = next_trace_item(g);
+		printf("%s %d\n", __FUNCTION__, __LINE__);
 		miss_cnt = do_cache_ref(core, r);
 		if (miss_cnt == -1) goto done;
 	}
@@ -62,7 +65,7 @@ done:
 	r.accesstype = D4XCOPYB;
 	r.address = 0;
 	r.size = 0;
-	miss_cnt = d4ref (g->cd, r); printf("miss %d\n", miss_cnt);
+	miss_cnt = d4ref (g, g->cd, r); printf("miss %d\n", miss_cnt);
 	printf ("---Simulation complete.\n");
 	dostats(g);
 	printf ("---Execution complete.\n");

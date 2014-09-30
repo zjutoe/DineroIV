@@ -156,9 +156,9 @@ int d4wback_nofetch (d4cache *c, d4memref m, int setnumber, d4stacknode *ptr, in
  * will appear multiple times, renamed to something else each time.
  */
 #undef d4ref /* defeat the macro from d4.h, which users normally invoke */
-extern void d4ref (d4cache *, d4memref); /* prototype to avoid compiler warnings */
+extern void d4ref (G *g, d4cache *, d4memref); /* prototype to avoid compiler warnings */
 void
-d4ref (d4cache *c, d4memref m)
+d4ref (G *g, d4cache *c, d4memref m)
 {
 	extern int d4_ncustom;
 	extern void (*d4_custom[]) (d4cache *, d4memref);
@@ -192,7 +192,7 @@ d4ref (d4cache *c, d4memref m)
  */
 D4_INLINE
 d4stacknode *
-d4rep_lru (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
+d4rep_lru (G *g, d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
 {
 	if (ptr != NULL) {	/* hits */
 		if ((!D4CUSTOM || D4VAL (c, assoc) > 1 || (D4VAL (c, flags) & D4F_CCC) != 0) &&
@@ -205,7 +205,7 @@ d4rep_lru (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
 		ptr->blockaddr = D4ADDR2BLOCK (c, m.address);
 		if ((!D4CUSTOM || D4VAL(c,assoc) >= D4HASH_THRESH || (D4VAL(c,flags)&D4F_CCC)!=0) &&
 		    c->stack[stacknum].n > D4HASH_THRESH)
-			d4hash (c, stacknum, ptr);
+			d4hash (g, c, stacknum, ptr);
 		c->stack[stacknum].top = ptr;	/* quicker than d4movetotop */
 	}
 	return ptr;
@@ -219,14 +219,14 @@ d4rep_lru (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
  */
 D4_INLINE
 d4stacknode *
-d4rep_fifo (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
+d4rep_fifo (G *g, d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
 {
 	if (ptr == NULL) {	/* misses */
 		ptr = c->stack[stacknum].top->up;
 		assert (ptr->valid == 0);
 		ptr->blockaddr = D4ADDR2BLOCK (c, m.address);
 		if (c->stack[stacknum].n > D4HASH_THRESH)
-			d4hash (c, stacknum, ptr);
+			d4hash (g, c, stacknum, ptr);
 		c->stack[stacknum].top = ptr;	/* quicker than d4movetotop */
 	}
 	return ptr;
@@ -240,7 +240,7 @@ d4rep_fifo (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
  */
 D4_INLINE
 d4stacknode *
-d4rep_random (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
+d4rep_random (G *g, d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
 {
 	if (ptr == NULL) {	/* misses */
 		int setsize = c->stack[stacknum].n - 1;
@@ -248,7 +248,7 @@ d4rep_random (d4cache *c, int stacknum, d4memref m, d4stacknode *ptr)
 		assert (ptr->valid == 0);
 		ptr->blockaddr = D4ADDR2BLOCK (c, m.address);
 		if (setsize >= D4HASH_THRESH)
-			d4hash (c, stacknum, ptr);
+			d4hash (g, c, stacknum, ptr);
 		c->stack[stacknum].top = ptr;	/* quicker than d4movetotop */
 		if (ptr->up->valid != 0)	/* set is full */
 			d4movetobot (c, stacknum, d4findnth (c, stacknum, 2 + (random() % setsize)));
@@ -278,11 +278,11 @@ d4prefetch_none (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
  */
 D4_INLINE
 d4pendstack *
-d4prefetch_always (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
+d4prefetch_always (G *g, d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
 {
 	d4pendstack *pf;
 
-	pf = d4get_mref();
+	pf = d4get_mref(g);
 	pf->m.address = D4ADDR2SUBBLOCK (c, m.address + c->prefetch_distance);
 	pf->m.accesstype = m.accesstype | D4PREFETCH;
 	pf->m.size = 1<<D4VAL(c,lg2subblocksize);
@@ -298,14 +298,14 @@ d4prefetch_always (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
  */
 D4_INLINE
 d4pendstack *
-d4prefetch_loadforw (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
+d4prefetch_loadforw (G *g, d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
 {
 	d4pendstack *pf;
 
 	if (D4ADDR2BLOCK(c,m.address+c->prefetch_distance) != D4ADDR2BLOCK(c,m.address))
 		return NULL;
 
-	pf = d4get_mref();
+	pf = d4get_mref(g);
 	pf->m.address = D4ADDR2SUBBLOCK (c, m.address + c->prefetch_distance);
 	pf->m.accesstype = m.accesstype | D4PREFETCH;
 	pf->m.size = 1<<D4VAL(c,lg2subblocksize);
@@ -321,11 +321,11 @@ d4prefetch_loadforw (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
  */
 D4_INLINE
 d4pendstack *
-d4prefetch_subblock (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
+d4prefetch_subblock (G *g, d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
 {
 	d4pendstack *pf;
 
-	pf = d4get_mref();
+	pf = d4get_mref(g);
 	pf->m.address = D4ADDR2SUBBLOCK (c, m.address + c->prefetch_distance);
 	pf->m.accesstype = m.accesstype | D4PREFETCH;
 	pf->m.size = 1<<D4VAL(c,lg2subblocksize);
@@ -344,14 +344,14 @@ d4prefetch_subblock (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
  */
 D4_INLINE
 d4pendstack *
-d4prefetch_miss (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
+d4prefetch_miss (G *g, d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
 {
 	d4pendstack *pf;
 
 	if (!miss)
 		return NULL;
 
-	pf = d4get_mref();
+	pf = d4get_mref(g);
 	pf->m.address = D4ADDR2SUBBLOCK (c, m.address + c->prefetch_distance);
 	pf->m.accesstype = m.accesstype | D4PREFETCH;
 	pf->m.size = 1<<D4VAL(c,lg2subblocksize);
@@ -374,7 +374,7 @@ d4prefetch_miss (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
  */
 D4_INLINE
 d4pendstack *
-d4prefetch_tagged (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
+d4prefetch_tagged (G *g, d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
 {
 	d4pendstack *pf;
 	int sbbits;
@@ -383,7 +383,7 @@ d4prefetch_tagged (d4cache *c, d4memref m, int miss, d4stacknode *stackptr)
 	if (!miss && (sbbits & stackptr->referenced) != 0)
 		return NULL;
 
-	pf = d4get_mref();
+	pf = d4get_mref(g);
 	pf->m.address = D4ADDR2SUBBLOCK (c, m.address + c->prefetch_distance);
 	pf->m.accesstype = m.accesstype | D4PREFETCH;
 	pf->m.size = 1<<D4VAL(c,lg2subblocksize);
@@ -580,7 +580,7 @@ d4infcache (d4cache *c, d4memref m)
  */
 D4_INLINE
 d4memref
-d4_splitm (d4cache *c, d4memref mr, d4addr ba)
+d4_splitm (G *g, d4cache *c, d4memref mr, d4addr ba)
 {
 	const int bsize = 1 << D4VAL (c, lg2blocksize);
 	const int bmask = bsize - 1;
@@ -589,7 +589,7 @@ d4_splitm (d4cache *c, d4memref mr, d4addr ba)
 
 	if (ba == D4ADDR2BLOCK (c, mr.address + mr.size - 1))
 		return mr;
-	pf = d4get_mref();
+	pf = d4get_mref(g);
         pf->m.address = ba + bsize;
         pf->m.accesstype = mr.accesstype | D4_MULTIBLOCK;
 	newsize = bsize - (mr.address&bmask);
@@ -608,8 +608,9 @@ d4_splitm (d4cache *c, d4memref mr, d4addr ba)
  * the processor; other caches are handled automatically.
  */
 int
-d4ref (d4cache *c, d4memref mr)
+d4ref (G *g, d4cache *c, d4memref mr)
 {
+	printf("%s %d g=%x\n", __FUNCTION__, __LINE__, g);
     int miss_cnt = 0;
     /* special cases first */
     if ((D4VAL (c, flags) & D4F_MEM) != 0) /* Special case for simulated memory */
@@ -617,13 +618,14 @@ d4ref (d4cache *c, d4memref mr)
     else if (mr.accesstype == D4XCOPYB || mr.accesstype == D4XINVAL) {
 	d4memref m = mr;	/* dumb compilers might de-optimize if we take addr of mr */
 	if (m.accesstype == D4XCOPYB)
-		d4copyback (c, &m, 1);
+		d4copyback (g, c, &m, 1);
 	else
-		d4invalidate (c, &m, 1);
+		d4invalidate (g, c, &m, 1);
     }
     else {				 /* Everything else */
+	    printf("%s %d\n", __FUNCTION__, __LINE__);
 	const d4addr blockaddr = D4ADDR2BLOCK (c, mr.address);
-	const d4memref m = d4_splitm (c, mr, blockaddr);
+	const d4memref m = d4_splitm (g, c, mr, blockaddr);
 	const int atype = D4BASIC_ATYPE (m.accesstype);
 	const int setnumber = D4ADDR2SET (c, m.address);
 	const int ronly = D4CUSTOM && (D4VAL (c, flags) & D4F_RO) != 0; /* conservative */
@@ -637,7 +639,7 @@ d4ref (d4cache *c, d4memref mr)
 			 c->cacheid, c->name);
 		exit (9);
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Find address in the cache.
 	 * Quickly check for top of stack.
@@ -646,10 +648,10 @@ d4ref (d4cache *c, d4memref mr)
 	if (ptr->blockaddr == blockaddr && ptr->valid != 0)
 		; /* found it */
 	else if (!D4CUSTOM || D4VAL (c, assoc) > 1)
-		ptr = d4_find (c, setnumber, blockaddr);
+		ptr = d4_find (g, c, setnumber, blockaddr);
 	else
 		ptr = NULL;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	blockmiss = (ptr == NULL);
 	miss = blockmiss || (sbbits & ptr->valid) != sbbits;
 
@@ -660,29 +662,31 @@ d4ref (d4cache *c, d4memref mr)
 	 */
 	if ((!D4CUSTOM || !D4_OPT (prefetch_none)) &&
 	    (m.accesstype == D4XREAD || m.accesstype == D4XINSTRN)) {
-		d4pendstack *pf = D4VAL (c, prefetchf) (c, m, miss, ptr);
+		d4pendstack *pf = D4VAL (c, prefetchf) (g, c, m, miss, ptr);
 		if (pf != NULL) {
 			/* Note: 0 <= random() <= 2^31-1 and 0 <= random()/(INT_MAX/100) < 100. */
 			if (D4VAL (c, prefetch_abortpercent) > 0 &&
 			    random()/(INT_MAX/100) < D4VAL (c, prefetch_abortpercent))
-				d4put_mref (pf);	/* throw it away */
+				d4put_mref (g, pf);	/* throw it away */
 			else {
 				pf->next = c->pending;	/* add to pending list */
 				c->pending = pf;
 			}
 		}
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Update the cache
 	 * Don't do it for non-write-allocate misses
 	 */
 	wback = 0;
 	if (ronly || atype != D4XWRITE || !blockmiss || walloc) {
+		printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * Adjust priority stack as necessary
 		 */
-		ptr = D4VAL (c, replacementf) (c, setnumber, m, ptr);
+		ptr = D4VAL (c, replacementf) (g, c, setnumber, m, ptr);
+		printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * Update state bits
 		 */
@@ -694,7 +698,7 @@ d4ref (d4cache *c, d4memref mr)
 		ptr->valid |= sbbits;
 		if ((m.accesstype & D4PREFETCH) == 0)
 			ptr->referenced |= sbbits;
-
+		printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * For writes, decide if write-back or write-through.
 		 * Set the dirty bits if write-back is going to be used.
@@ -713,14 +717,14 @@ d4ref (d4cache *c, d4memref mr)
 			d4stacknode *rptr = c->stack[setnumber].top->up;
 			if (rptr->valid != 0) {
 				if (!ronly && (rptr->valid & rptr->dirty) != 0)
-					d4_wbblock (c, rptr, D4VAL (c, lg2subblocksize));
+					d4_wbblock (g, c, rptr, D4VAL (c, lg2subblocksize));
 				if (c->stack[setnumber].n > D4HASH_THRESH)
-					d4_unhash (c, setnumber, rptr);
+					d4_unhash (g, c, setnumber, rptr);
 				rptr->valid = 0;
 			}
 		}
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Prepare reference for downstream cache.
 	 * We do this for write-throughs, read-type misses,
@@ -730,14 +734,14 @@ d4ref (d4cache *c, d4memref mr)
 	 * a fetch to load the complete subblock and a write-through store.
 	 */
 	if (!ronly && atype == D4XWRITE && !wback) {
-		d4pendstack *newm = d4get_mref();
+		d4pendstack *newm = d4get_mref(g);
 		newm->m = m; 
 		newm->next = c->pending;
 		c->pending = newm;
 	}
 	if (miss && (ronly || atype != D4XWRITE ||
 		     (walloc && m.size != D4REFNSB (c, m) << D4VAL (c, lg2subblocksize)))) {
-		d4pendstack *newm = d4get_mref();
+		d4pendstack *newm = d4get_mref(g);
 		/* note, we drop prefetch attribute */
 		newm->m.accesstype = (atype == D4XWRITE) ? D4XREAD : atype;
 		newm->m.address = D4ADDR2SUBBLOCK (c, m.address);
@@ -745,7 +749,7 @@ d4ref (d4cache *c, d4memref mr)
 		newm->next = c->pending;
 		c->pending = newm;
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Do fully associative and infinite sized caches too.
 	 * This allows classifying misses into {compulsory,capacity,conflict}.
@@ -761,7 +765,7 @@ d4ref (d4cache *c, d4memref mr)
 
 		ptr = c->stack[fullset].top;
 		if (ptr->blockaddr != blockaddr)
-			ptr = d4_find (c, fullset, blockaddr);
+			ptr = d4_find (g, c, fullset, blockaddr);
 		else if (ptr->valid == 0)
 			ptr = NULL;
 
@@ -770,7 +774,7 @@ d4ref (d4cache *c, d4memref mr)
 
 		/* take care of stack update */
 		if (ronly || atype != D4XWRITE || !fullblockmiss || walloc) {
-			ptr = D4VAL (c, replacementf) (c, fullset, m, ptr);
+			ptr = D4VAL (c, replacementf) (g, c, fullset, m, ptr);
 			assert (!fullblockmiss || ptr->valid == 0);
 			ptr->valid |= sbbits;
 		}
@@ -802,30 +806,39 @@ d4ref (d4cache *c, d4memref mr)
 			d4stacknode *rptr = c->stack[fullset].top->up;
 			if (rptr->valid != 0) {
 				if (c->stack[fullset].n > D4HASH_THRESH)
-					d4_unhash (c, fullset, rptr);
+					d4_unhash (g, c, fullset, rptr);
 				rptr->valid = 0;
 			}
 		}
 	}
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Update non-ccc metrics. 
 	 */
 	c->fetch[(int)m.accesstype]++;
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (miss) {
 		miss_cnt++;
 		c->miss[(int)m.accesstype]++;
-		if (blockmiss)
+		printf("%s %d blockmiss=%d\n", __FUNCTION__, __LINE__, blockmiss);
+		if (blockmiss) {
+			printf("%s %d\n", __FUNCTION__, __LINE__);
 			c->blockmiss[(int)m.accesstype]++;
+			printf("%s %d\n", __FUNCTION__, __LINE__);
+		}
 	}
 
 	/*
 	 * Now make recursive calls for pending references
 	 */
-	if (c->pending)
-		miss_cnt += d4_dopending (c, c->pending);
+	if (c->pending) {
+		printf("%s %d\n", __FUNCTION__, __LINE__);
+		miss_cnt += d4_dopending (g, c, c->pending);
+		printf("%s %d\n", __FUNCTION__, __LINE__);
+	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
     }
-
+    printf("%s %d\n", __FUNCTION__, __LINE__);
     return miss_cnt;
 }
 

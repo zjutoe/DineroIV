@@ -116,6 +116,15 @@ double tmaxcount;
 double flcount;
 double tintcount;
 
+/*
+ * Global variable definitions
+ */
+struct d4_stackhash_struct d4stackhash;
+d4stacknode d4freelist;
+int d4nnodes;
+d4pendstack *d4pendfree;
+d4cache *d4_allcaches;
+
 } G;
 
 #endif	//#ifdef _GLOBAL_H
