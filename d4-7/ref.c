@@ -610,7 +610,7 @@ d4_splitm (G *g, d4cache *c, d4memref mr, d4addr ba)
 int
 d4ref (G *g, d4cache *c, d4memref mr)
 {
-	printf("%s %d g=%x\n", __FUNCTION__, __LINE__, g);
+	//printf("%s %d g=%x\n", __FUNCTION__, __LINE__, g);
     int miss_cnt = 0;
     /* special cases first */
     if ((D4VAL (c, flags) & D4F_MEM) != 0) /* Special case for simulated memory */
@@ -623,7 +623,7 @@ d4ref (G *g, d4cache *c, d4memref mr)
 		d4invalidate (g, c, &m, 1);
     }
     else {				 /* Everything else */
-	    printf("%s %d\n", __FUNCTION__, __LINE__);
+	    //printf("%s %d\n", __FUNCTION__, __LINE__);
 	const d4addr blockaddr = D4ADDR2BLOCK (c, mr.address);
 	const d4memref m = d4_splitm (g, c, mr, blockaddr);
 	const int atype = D4BASIC_ATYPE (m.accesstype);
@@ -639,7 +639,7 @@ d4ref (G *g, d4cache *c, d4memref mr)
 			 c->cacheid, c->name);
 		exit (9);
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Find address in the cache.
 	 * Quickly check for top of stack.
@@ -651,7 +651,7 @@ d4ref (G *g, d4cache *c, d4memref mr)
 		ptr = d4_find (g, c, setnumber, blockaddr);
 	else
 		ptr = NULL;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	blockmiss = (ptr == NULL);
 	miss = blockmiss || (sbbits & ptr->valid) != sbbits;
 
@@ -674,19 +674,19 @@ d4ref (G *g, d4cache *c, d4memref mr)
 			}
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Update the cache
 	 * Don't do it for non-write-allocate misses
 	 */
 	wback = 0;
 	if (ronly || atype != D4XWRITE || !blockmiss || walloc) {
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * Adjust priority stack as necessary
 		 */
 		ptr = D4VAL (c, replacementf) (g, c, setnumber, m, ptr);
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * Update state bits
 		 */
@@ -698,7 +698,7 @@ d4ref (G *g, d4cache *c, d4memref mr)
 		ptr->valid |= sbbits;
 		if ((m.accesstype & D4PREFETCH) == 0)
 			ptr->referenced |= sbbits;
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * For writes, decide if write-back or write-through.
 		 * Set the dirty bits if write-back is going to be used.
@@ -724,7 +724,7 @@ d4ref (G *g, d4cache *c, d4memref mr)
 			}
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Prepare reference for downstream cache.
 	 * We do this for write-throughs, read-type misses,
@@ -749,7 +749,7 @@ d4ref (G *g, d4cache *c, d4memref mr)
 		newm->next = c->pending;
 		c->pending = newm;
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Do fully associative and infinite sized caches too.
 	 * This allows classifying misses into {compulsory,capacity,conflict}.
@@ -811,20 +811,20 @@ d4ref (G *g, d4cache *c, d4memref mr)
 			}
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	/*
 	 * Update non-ccc metrics. 
 	 */
 	c->fetch[(int)m.accesstype]++;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (miss) {
 		miss_cnt++;
 		c->miss[(int)m.accesstype]++;
-		printf("%s %d blockmiss=%d\n", __FUNCTION__, __LINE__, blockmiss);
+		//printf("%s %d blockmiss=%d\n", __FUNCTION__, __LINE__, blockmiss);
 		if (blockmiss) {
-			printf("%s %d\n", __FUNCTION__, __LINE__);
+			//printf("%s %d\n", __FUNCTION__, __LINE__);
 			c->blockmiss[(int)m.accesstype]++;
-			printf("%s %d\n", __FUNCTION__, __LINE__);
+			//printf("%s %d\n", __FUNCTION__, __LINE__);
 		}
 	}
 
@@ -832,13 +832,13 @@ d4ref (G *g, d4cache *c, d4memref mr)
 	 * Now make recursive calls for pending references
 	 */
 	if (c->pending) {
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		miss_cnt += d4_dopending (g, c, c->pending);
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
     }
-    printf("%s %d\n", __FUNCTION__, __LINE__);
+    //printf("%s %d\n", __FUNCTION__, __LINE__);
     return miss_cnt;
 }
 

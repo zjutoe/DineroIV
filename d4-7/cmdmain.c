@@ -96,9 +96,9 @@ int
 do1arg (G *g, const char *opt, const char *arg)
 {
 	struct arglist *adesc;
-	printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
+	//printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
 	for (adesc = g->args;  adesc->optstring != NULL;  adesc++) {
-		printf("%s %d %s\n", __FUNCTION__, __LINE__, adesc->optstring);
+		//printf("%s %d %s\n", __FUNCTION__, __LINE__, adesc->optstring);
 		int eaten = adesc->match (opt, adesc);
 		if (eaten > 0) {
 			if (eaten > 1 && (arg == NULL || *arg == '-'))
@@ -167,36 +167,36 @@ level_idu (G *g, const char *opt, int *levelp, int *idup)
 	int level;
 	char *nextc;
 
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 
 	if (*opt++ != '-' || *opt++ != 'l')
 		return NULL;	/* no initial -l */
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (*opt == '-' || *opt == '+')
 		return NULL;	/* we don't accept a sign here */
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	level = strtol (opt, &nextc, 10);
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (nextc == opt)
 		return NULL;	/* no digits */
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (level <= 0 || level > MAX_LEV)
 		return NULL;	/* level out of range */
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	if (*nextc++ != '-')	/* missing - after level */
 		return NULL;
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	switch (*nextc++) {
 	default:	return NULL;	/* bad idu value */
 	case 'u':	*idup = 0; break;
 	case 'i':	*idup = 1; break;
 	case 'd':	*idup = 2; break;
 	}
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	*levelp = level - 1;
 	if (level > g->maxlevel)
 		g->maxlevel = level;
-	printf("%s %d nextc=%s\n", __FUNCTION__, __LINE__, nextc);
+	//printf("%s %d nextc=%s\n", __FUNCTION__, __LINE__, nextc);
 	return nextc;
 }
 
@@ -300,7 +300,7 @@ argscale_uintd (const char *arg, double *var)
 int
 match_0arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	//printf("%s %d %s\n", __FUNCTION__, __LINE__, opt);
+	////printf("%s %d %s\n", __FUNCTION__, __LINE__, opt);
 	return strcmp (opt, adesc->optstring) == 0;
 }
 
@@ -311,7 +311,7 @@ match_0arg (G *g, const char *opt, const struct arglist *adesc)
 int
 pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d g=%x\n", __FUNCTION__, __LINE__, g);
+	//printf("%s %d g=%x\n", __FUNCTION__, __LINE__, g);
 	int level;
 	int idu;
 	const char *nextc = level_idu (g, opt, &level, &idu);
@@ -327,7 +327,7 @@ pmatch_0arg (G *g, const char *opt, const struct arglist *adesc)
 int
 match_1arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d %s vs %s\n", __FUNCTION__, __LINE__, opt, adesc->optstring);
+	//printf("%s %d %s vs %s\n", __FUNCTION__, __LINE__, opt, adesc->optstring);
 	return 2 * (strcmp (opt, adesc->optstring) == 0);
 }
 
@@ -338,13 +338,13 @@ match_1arg (G *g, const char *opt, const struct arglist *adesc)
 int
 pmatch_1arg (G *g, const char *opt, const struct arglist *adesc)
 {
-	printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
+	//printf("%s %d opt=%s\n", __FUNCTION__, __LINE__, opt);
 	int level;
 	int idu;
 	const char *nextc = level_idu (g, opt, &level, &idu);
 	if (nextc == NULL)
 		return 0;	/* not recognized */
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	return 2 * (strcmp (nextc, adesc->optstring) == 0);
 }
 
@@ -1744,7 +1744,7 @@ next_trace_item(G *g)
 	static int once = 1;
 	static int discard = 0;
 	static int hastoggled = 0;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (once) {
 		once = 0;
 		if (g->on_trigger != 0)
@@ -1761,7 +1761,7 @@ next_trace_item(G *g)
 			} while ((tskipcount -= 1) > 0);
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	while (1) {
 		r = input_function();
 		if (r.accesstype == D4TRACE_END) {
@@ -1798,12 +1798,12 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 	d4cache	*c = NULL,	/* avoid `may be used uninitialized' warning in gcc */
 		*ci,
 		*cd;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	g->mem = cd = ci = d4new(g, NULL);
 	if (ci == NULL)
 		die (g, "cannot create simulated memory\n");
 	ci->name = memname;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	for (lev = g->maxlevel-1;  lev >= 0;  lev--) {
 		for (idu = 0;  idu < 3;  idu++) {
 			if (g->level_size[idu][lev] != 0) {
@@ -1820,9 +1820,9 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 			}
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	i = d4setup(g);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (i != 0)
 		die (g, "cannot complete cache initializations; d4setup = %d\n", i);
 	*icachep = ci;
@@ -1987,10 +1987,10 @@ int do_cache_ref(int core_id, d4memref r)
 		printf ("---Maximum address count exceeded.\n");
 		return -1;
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	d4cache *ci = g->ci;
 	d4cache *cd = g->cd;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	switch (r.accesstype) {
 	case D4XINSTRN:	  miss_cnt = d4ref (g, ci, r);  printf("miss %d\n", miss_cnt); break;
 	case D4XINVAL:	  miss_cnt = d4ref (g, ci, r);  printf("miss %d\n", miss_cnt); /* fall through */ 
@@ -2001,7 +2001,7 @@ int do_cache_ref(int core_id, d4memref r)
 		dostats(g);
 		g->tintcount = g->stat_interval;
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (g->flcount > 0 && (g->flcount -= 1) <= 0) {
 		/* flush cache = copy back and invalidate */
 		r.accesstype = D4XCOPYB;
@@ -2015,7 +2015,7 @@ int do_cache_ref(int core_id, d4memref r)
 		}
 		g->flcount = g->flushcount;
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	return miss_cnt;
  done:
 	return -1;
@@ -2033,27 +2033,27 @@ int do_cache_ref(int core_id, d4memref r)
 
 int do_cache_init(int core_id)
 {
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (core_id >= MAXCORE) {
 		printf("ERROR: exceed core number limit\n");
 		return -1;
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	G *g = (G*)malloc(sizeof(G));	
 	if (g == NULL)
 		printf("g malloc failed\n");
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	g->progname = "dineroIV";
 	g->cust_argc = 1;
 	g->informat = DEFVAL_informat;
 	g->nextcacheid = 1;
 
 	doargs_simple(g);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	verify_options(g);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	initialize_caches (g, &g->ci, &g->cd);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 
 #if !D4CUSTOM
 	if (g->customname != NULL) {
@@ -2065,7 +2065,7 @@ int do_cache_init(int core_id)
 		g->cd = g->ci;	/* for unified L1 cache */
 
 	gg[core_id] = g;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	return core_id;
 }
 

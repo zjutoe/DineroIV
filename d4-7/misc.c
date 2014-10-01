@@ -99,11 +99,11 @@ d4setup(G *g)
 	int r = 0;
 	d4cache *c, *cc;
 	d4stacknode *nodes = NULL, *ptr;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	for (c = g->d4_allcaches;  c != NULL;  c = c->link) {
-		printf("%s %d stack=%x pending=%x cacheid=%d link=%x\n",
-		       __FUNCTION__, __LINE__, 
-		       c->stack, c->pending, c->cacheid, c->link);
+		//printf("%s %d stack=%x pending=%x cacheid=%d link=%x\n",
+		//__FUNCTION__, __LINE__, 
+		//c->stack, c->pending, c->cacheid, c->link);
 		/* Check some stuff the user shouldn't muck with */
 		if (c->stack != NULL || c->pending != NULL ||
 		    c->cacheid < 1 ||
@@ -112,7 +112,7 @@ d4setup(G *g)
 		    c->numsets != 0 ||
 		    c->ranges != NULL || c->nranges != 0 || c->maxranges != 0)
 			goto fail1;
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		/*
 		 * If customization has been done,
 		 * check that the same values have been set in the d4cache structure.
@@ -163,7 +163,7 @@ d4setup(G *g)
 				exit (9);
 			}
 		}
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		if ((c->flags & D4F_MEM) != 0)
 			c->numsets = 1;	/* not used, but helps avoid compiler warnings */
 		else {
@@ -227,7 +227,7 @@ d4setup(G *g)
 #endif
 			g->d4nnodes += nnodes;
 		}
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		/* make a printable name if the user didn't pick one */
 		if (c->name == NULL) {
 			c->name = malloc (30);
@@ -237,7 +237,7 @@ d4setup(G *g)
 				 (c->flags&D4F_MEM)!=0 ? "memory" : "cache", c->cacheid);
 		}
 	}
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 #if D4_HASHSIZE > 0
 	g->d4stackhash.size = D4_HASHSIZE;
 #endif
@@ -263,18 +263,18 @@ fail4:	r++;
 fail3:	r++;
 fail2:	r++;
 fail1:	r++;
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	for (cc = g->d4_allcaches;  cc != c;  cc = cc->link) {
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		/* don't bother trying to deallocate c->name */
 		free (c->stack[0].top);
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		free (c->stack);
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		c->stack = NULL;
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		c->numsets = 0;
-		printf("%s %d\n", __FUNCTION__, __LINE__);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
 	}
 	g->d4nnodes = 0;
 	return r;
@@ -632,7 +632,7 @@ d4put_mref (G *g, d4pendstack *m)
 int
 d4_dopending (G *g, d4cache *c, d4pendstack *newm)
 {
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	int miss_cnt = 0;
 	do {
 		c->pending = newm->next;
@@ -662,7 +662,7 @@ d4_dopending (G *g, d4cache *c, d4pendstack *newm)
 		}
 		d4put_mref(g, newm);
 	} while ((newm = c->pending) != NULL);
-	printf("%s %d\n", __FUNCTION__, __LINE__);
+	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	return miss_cnt;
 }
 

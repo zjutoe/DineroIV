@@ -646,13 +646,13 @@ verify_options(G *g)
 			nidu += active;
 			if (active && nparams != (6+2*(idu!=1))) {
 				if (g->level_blocksize[idu][lev]==0) { 
-					printf("%s %d\n", __FUNCTION__, __LINE__);
+					//printf("%s %d\n", __FUNCTION__, __LINE__);
 					unspec (g, lev, idu, "block size", &g->level_blocksize[0][0], "16");}
 				if (g->level_size[idu][lev]==0) {
-					printf("%s %d\n", __FUNCTION__, __LINE__);
+					//printf("%s %d\n", __FUNCTION__, __LINE__);
 					unspec (g, lev, idu, "size", &g->level_size[0][0], "16k");
 				}
-				printf("%s %d nparams=%d idu=%d\n", __FUNCTION__, __LINE__, nparams, idu);
+				//printf("%s %d nparams=%d idu=%d\n", __FUNCTION__, __LINE__, nparams, idu);
 				printf("%d %d %d %d %d %d %d %d\n",
 				       (g->level_blocksize[idu][lev]!=0) ,
 				       (g->level_subblocksize[idu][lev]!=0) ,
