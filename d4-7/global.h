@@ -125,6 +125,8 @@ int d4nnodes;
 d4pendstack *d4pendfree;
 d4cache *d4_allcaches;
 
+int nextcacheid;
+
 } G;
 
 #endif	//#ifdef _GLOBAL_H

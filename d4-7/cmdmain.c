@@ -1798,12 +1798,12 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 	d4cache	*c = NULL,	/* avoid `may be used uninitialized' warning in gcc */
 		*ci,
 		*cd;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	g->mem = cd = ci = d4new(g, NULL);
 	if (ci == NULL)
 		die (g, "cannot create simulated memory\n");
 	ci->name = memname;
-
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	for (lev = g->maxlevel-1;  lev >= 0;  lev--) {
 		for (idu = 0;  idu < 3;  idu++) {
 			if (g->level_size[idu][lev] != 0) {
@@ -1820,7 +1820,9 @@ initialize_caches (G *g, d4cache **icachep, d4cache **dcachep)
 			}
 		}
 	}
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	i = d4setup(g);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	if (i != 0)
 		die (g, "cannot complete cache initializations; d4setup = %d\n", i);
 	*icachep = ci;
@@ -2044,10 +2046,12 @@ int do_cache_init(int core_id)
 	g->progname = "dineroIV";
 	g->cust_argc = 1;
 	g->informat = DEFVAL_informat;
-	
+	g->nextcacheid = 1;
+
 	doargs_simple(g);
 	printf("%s %d\n", __FUNCTION__, __LINE__);
 	verify_options(g);
+	printf("%s %d\n", __FUNCTION__, __LINE__);
 	initialize_caches (g, &g->ci, &g->cd);
 	printf("%s %d\n", __FUNCTION__, __LINE__);
 

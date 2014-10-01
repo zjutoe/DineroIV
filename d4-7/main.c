@@ -29,9 +29,11 @@ int
 main (int argc, char **argv)
 {
 	d4memref r;
-
+	printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
 	int core = do_cache_init(0);
+	printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
 	core = do_cache_init(1);
+	printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
 	if (core < 0) {
 		printf("ERROR: fail to init cache\n");
 		return -1;
