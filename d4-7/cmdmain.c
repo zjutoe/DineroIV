@@ -2064,6 +2064,11 @@ int do_cache_init(int core_id)
 	if (g->cd == NULL)
 		g->cd = g->ci;	/* for unified L1 cache */
 
+
+	g->tmaxcount = 0;
+	g->tintcount = g->stat_interval;
+	g->flcount = g->flushcount;
+
 	gg[core_id] = g;
 	//printf("%s %d\n", __FUNCTION__, __LINE__);
 	return core_id;

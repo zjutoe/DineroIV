@@ -32,7 +32,7 @@ main (int argc, char **argv)
 	//printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
 	int core = do_cache_init(0);
 	//printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
-	core = do_cache_init(1);
+	int core1 = do_cache_init(1);
 	//printf("%s %d ---------------------------\n", __FUNCTION__, __LINE__);
 	if (core < 0) {
 		printf("ERROR: fail to init cache\n");
@@ -40,6 +40,7 @@ main (int argc, char **argv)
 	}
 
 	G *g = gg[core];
+	G *g1 = gg[core1];
 
 	printf ("---Dinero IV cache simulator, version %s\n", D4VERSION);
 	printf ("---Written by Jan Edler and Mark D. Hill\n");
@@ -53,23 +54,32 @@ main (int argc, char **argv)
 	int miss_cnt = 0;
 
 	printf ("\n---Simulation begins.\n");
-	g->tmaxcount = 0;
-	g->tintcount = g->stat_interval;
-	g->flcount = g->flushcount;
+	// g->tmaxcount = 0;
+	// g->tintcount = g->stat_interval;
+	// g->flcount = g->flushcount;
 	while (1) {
+		r = next_trace_item(g1);
+		//printf("%s %d\n", __FUNCTION__, __LINE__);
+		miss_cnt = do_cache_ref(core1, r);
+		if (miss_cnt == -1) goto done;
+
 		r = next_trace_item(g);
 		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		miss_cnt = do_cache_ref(core, r);
 		if (miss_cnt == -1) goto done;
 	}
+
 done:
 	/* copy everything back at the end -- is this really a good idea? XXX */
 	r.accesstype = D4XCOPYB;
 	r.address = 0;
 	r.size = 0;
 	miss_cnt = d4ref (g, g->cd, r); printf("miss %d\n", miss_cnt);
+	miss_cnt = d4ref (g1, g1->cd, r); printf("g1: miss %d\n", miss_cnt);
 	printf ("---Simulation complete.\n");
 	dostats(g);
+	printf ("---Simulation complete.\n");
+	dostats(g1);
 	printf ("---Execution complete.\n");
 	return 0;
 }
