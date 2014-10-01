@@ -63,7 +63,7 @@ main (int argc, char **argv)
 		miss_cnt = do_cache_ref(core1, r);
 		if (miss_cnt == -1) goto done;
 
-		r = next_trace_item(g);
+		//r = next_trace_item(g);
 		//printf("%s %d\n", __FUNCTION__, __LINE__);
 		miss_cnt = do_cache_ref(core, r);
 		if (miss_cnt == -1) goto done;

@@ -16,6 +16,9 @@ ffi.cdef[[
 d4lua = ffi.load('./libd4lua.so')
 
 d4lua.do_cache_init(0)
+d4lua.do_cache_init(1)
+d4lua.do_cache_init(2)
+d4lua.do_cache_init(3)
 
 local r = ffi.new("d4memref")
 
@@ -196,7 +199,7 @@ for k, v in ipairs(mem_access_trace) do
    r.accesstype = v.accesstype
    r.address = v.address
    r.size = v.size
-   miss = d4lua.do_cache_ref(0, r)
+   miss = d4lua.do_cache_ref(k%4, r)
    if miss < 0 then break end
 end
 
